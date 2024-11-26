@@ -4,6 +4,7 @@ package ranger
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/violet-eva-01/datalake/util"
 	"io"
@@ -85,18 +86,18 @@ func (r *Ranger) Request(method string, Api string, body []byte) (*http.Response
 	return resp, respErr
 }
 
-func (r *Ranger) RequestToStruct(method string, Api string, body []byte, data any) (any, error) {
+func (r *Ranger) RequestToStruct(method string, Api string, body []byte, data any) error {
 
 	request, reqErr := http.NewRequest(method, fmt.Sprintf("http://%s:%d/%s%s", r.Host, r.Port, r.ApiPath, Api), bytes.NewBuffer(body))
 	if reqErr != nil {
-		return nil, reqErr
+		return reqErr
 	}
 
 	util.SetRequestBasicAuth(request, r.UserName, r.PassWord)
 	util.SetRequestHeader(request, r.Headers)
 	resp, respErr := util.GetResponse(request, r.Proxy)
 	if respErr != nil {
-		return nil, respErr
+		return respErr
 	}
 
 	defer func() {
@@ -105,26 +106,30 @@ func (r *Ranger) RequestToStruct(method string, Api string, body []byte, data an
 
 	respBody, readErr := io.ReadAll(resp.Body)
 	if readErr != nil {
-		return nil, readErr
+		return readErr
+	}
+
+	if respBody == nil {
+		return errors.New("response body is nil")
 	}
 
 	juErr := json.Unmarshal(respBody, &data)
 	if juErr != nil {
-		return nil, juErr
+		return juErr
 	}
 
-	return data, respErr
+	return respErr
 }
 
 func (r *Ranger) GetServiceDefs() error {
-	var pd PluginsDefinitions
+	var pd *PluginsDefinitions
 
-	response, respErr := r.RequestToStruct("GET", "/plugins/definitions", nil, pd)
+	respErr := r.RequestToStruct("GET", "/plugins/definitions", nil, pd)
 	if respErr != nil {
 		return respErr
 	}
 
-	r.ServiceDefs = response.(PluginsDefinitions).ServiceDefs
+	r.ServiceDefs = pd.ServiceDefs
 
 	for _, sd := range r.ServiceDefs {
 		for index, st := range serviceTypeName {
@@ -152,24 +157,22 @@ func (r *Ranger) GetServiceId(serviceType ServiceType) int {
 
 func (r *Ranger) GetPolicy(serviceTypes ...int) error {
 
-	var (
-		pb []PolicyBody
-	)
-
 	if len(serviceTypes) == 0 {
-		response, respErr := r.RequestToStruct("GET", "/public/v2/api/policy", nil, pb)
+		pb := &PolicyBody{}
+		respErr := r.RequestToStruct("GET", "/public/v2/api/policy?serviceType=hive", nil, pb)
 		if respErr != nil {
 			return respErr
 		}
-		r.PolicyBodies = response.([]PolicyBody)
+		r.PolicyBodies = append(r.PolicyBodies, *pb)
 	} else {
 		for _, serviceType := range serviceTypes {
 			if inServiceType(serviceType) {
-				response, respErr := r.RequestToStruct("GET", "/public/v2/api/policy", nil, pb)
+				pb := &PolicyBody{}
+				respErr := r.RequestToStruct("GET", "/public/v2/api/policy", nil, pb)
 				if respErr != nil {
 					return respErr
 				}
-				r.PolicyBodies = append(r.PolicyBodies, response.([]PolicyBody)...)
+				r.PolicyBodies = append(r.PolicyBodies, *pb)
 			}
 		}
 	}
