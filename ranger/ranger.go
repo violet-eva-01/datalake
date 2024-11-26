@@ -86,6 +86,13 @@ func (r *Ranger) Request(method string, Api string, body []byte) (*http.Response
 	return resp, respErr
 }
 
+// RequestToStruct
+// @Description:
+// @param method 请求方法
+// @param Api ranger api
+// @param body 请求体
+// @param data 需要为struct指针
+// @return error
 func (r *Ranger) RequestToStruct(method string, Api string, body []byte, data any) error {
 
 	request, reqErr := http.NewRequest(method, fmt.Sprintf("http://%s:%d/%s%s", r.Host, r.Port, r.ApiPath, Api), bytes.NewBuffer(body))
@@ -122,7 +129,7 @@ func (r *Ranger) RequestToStruct(method string, Api string, body []byte, data an
 }
 
 func (r *Ranger) GetServiceDefs() error {
-	var pd *PluginsDefinitions
+	pd := &PluginsDefinitions{}
 
 	respErr := r.RequestToStruct("GET", "/plugins/definitions", nil, pd)
 	if respErr != nil {
@@ -158,21 +165,21 @@ func (r *Ranger) GetServiceId(serviceType ServiceType) int {
 func (r *Ranger) GetPolicy(serviceTypes ...int) error {
 
 	if len(serviceTypes) == 0 {
-		pb := &PolicyBody{}
+		pb := &[]PolicyBody{}
 		respErr := r.RequestToStruct("GET", "/public/v2/api/policy?serviceType=hive", nil, pb)
 		if respErr != nil {
 			return respErr
 		}
-		r.PolicyBodies = append(r.PolicyBodies, *pb)
+		r.PolicyBodies = append(r.PolicyBodies, *pb...)
 	} else {
 		for _, serviceType := range serviceTypes {
 			if inServiceType(serviceType) {
-				pb := &PolicyBody{}
+				pb := &[]PolicyBody{}
 				respErr := r.RequestToStruct("GET", "/public/v2/api/policy", nil, pb)
 				if respErr != nil {
 					return respErr
 				}
-				r.PolicyBodies = append(r.PolicyBodies, *pb)
+				r.PolicyBodies = append(r.PolicyBodies, *pb...)
 			}
 		}
 	}
