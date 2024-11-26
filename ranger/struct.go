@@ -484,7 +484,7 @@ var objectTypeName = []string{
 
 func (ot ObjectType) String() string {
 	if ot >= HiveService && ot <= Chdfs {
-		return serviceTypeName[ot]
+		return objectTypeName[ot]
 	}
 	return "unknown service type"
 }
