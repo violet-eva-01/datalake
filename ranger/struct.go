@@ -1,89 +1,73 @@
 // Package ranger @author: Violet-Eva @date  : 2024/11/22 @notes :
 package ranger
 
-// Database
-// @Description: database resource
-type Database struct {
+type DatabaseResource struct {
 	Values      []string `json:"values"`
 	IsExcludes  bool     `json:"isExcludes"`
 	IsRecursive bool     `json:"isRecursive"`
 }
 
-// Table
-// @Description: table resource
-type Table struct {
+type TableResource struct {
 	Values      []string `json:"values"`
 	IsExcludes  bool     `json:"isExcludes"`
 	IsRecursive bool     `json:"isRecursive"`
 }
 
-// Column
-// @Description: column resource
-type Column struct {
+type ColumnResource struct {
 	Values      []string `json:"values"`
 	IsExcludes  bool     `json:"isExcludes"`
 	IsRecursive bool     `json:"isRecursive"`
 }
 
-// Global
-// @Description: global resource
-type Global struct {
+type GlobalResource struct {
 	Values      []string `json:"values"`
 	IsExcludes  bool     `json:"isExcludes"`
 	IsRecursive bool     `json:"isRecursive"`
 }
 
-// HiveService
-// @Description: hiveService resource
-type HiveService struct {
+type HiveServiceResource struct {
 	Values      []string `json:"values"`
 	IsExcludes  bool     `json:"isExcludes"`
 	IsRecursive bool     `json:"isRecursive"`
 }
 
-// UDF
-// @Description: udf resource
-type UDF struct {
+type UDFResource struct {
 	Values      []string `json:"values"`
 	IsExcludes  bool     `json:"isExcludes"`
 	IsRecursive bool     `json:"isRecursive"`
 }
 
-// URL
-// @Description: url resource
-type URL struct {
+type URLResource struct {
 	Values      []string `json:"values"`
 	IsExcludes  bool     `json:"isExcludes"`
 	IsRecursive bool     `json:"isRecursive"`
 }
 
-// Bucket
-// @Description: tencent cos bucket resource
-type Bucket struct {
+type BucketResource struct {
 	Values      []string `json:"values"`
 	IsExcludes  bool     `json:"isExcludes"`
 	IsRecursive bool     `json:"isRecursive"`
 }
 
-// Path
-// @Description: cos / hdfs path resource
-type Path struct {
+type MountPointResource struct {
 	Values      []string `json:"values"`
 	IsExcludes  bool     `json:"isExcludes"`
 	IsRecursive bool     `json:"isRecursive"`
 }
 
-// Queue
-// @Description: yarn queue resource
-type Queue struct {
+type PathResource struct {
 	Values      []string `json:"values"`
 	IsExcludes  bool     `json:"isExcludes"`
 	IsRecursive bool     `json:"isRecursive"`
 }
 
-// KeyName
-// @Description: kms keyName resource
-type KeyName struct {
+type QueueResource struct {
+	Values      []string `json:"values"`
+	IsExcludes  bool     `json:"isExcludes"`
+	IsRecursive bool     `json:"isRecursive"`
+}
+
+type KeyNameResource struct {
 	Values      []string `json:"values"`
 	IsExcludes  bool     `json:"isExcludes"`
 	IsRecursive bool     `json:"isRecursive"`
@@ -195,6 +179,25 @@ type RowFilterPolicyItems struct {
 	DelegateAdmin bool         `json:"delegateAdmin"`
 }
 
+type Resource struct {
+	// hive service 相关
+	Database    DatabaseResource    `json:"database,omitempty"`
+	Table       TableResource       `json:"table,omitempty"`
+	Column      ColumnResource      `json:"column,omitempty"`
+	Global      GlobalResource      `json:"global,omitempty"`
+	HiveService HiveServiceResource `json:"hiveservice,omitempty"`
+	Udf         UDFResource         `json:"udf,omitempty"`
+	Url         URLResource         `json:"url,omitempty"`
+	// cos & hdfs & chdfs service 相关
+	Bucket     BucketResource     `json:"bucket,omitempty"`
+	MountPoint MountPointResource `json:"mountpoint,omitempty"`
+	Path       PathResource       `json:"path,omitempty"`
+	// yarn service 相关
+	Queue QueueResource `json:"queue,omitempty"`
+	// kms service 相关
+	KeyName KeyNameResource `json:"keyname,omitempty"`
+}
+
 // PolicyBody
 // @Description: ranger policy 和 hdfs hive yarn cos service 相关的 body
 type PolicyBody struct {
@@ -207,26 +210,10 @@ type PolicyBody struct {
 	PolicyType int    `json:"policyType"`
 	// PolicyPriority
 	// @Description: 0 normal 1 overrides
-	PolicyPriority int    `json:"policyPriority"`
-	Description    string `json:"description"`
-	IsAuditEnabled bool   `json:"isAuditEnabled"`
-	Resources      struct {
-		// hive service 相关
-		Database    Database    `json:"database,omitempty"`
-		Table       Table       `json:"table,omitempty"`
-		Column      Column      `json:"column,omitempty"`
-		Global      Global      `json:"global,omitempty"`
-		HiveService HiveService `json:"hiveservice,omitempty"`
-		Udf         UDF         `json:"udf,omitempty"`
-		Url         URL         `json:"url,omitempty"`
-		// cos & hdfs service 相关
-		Bucket Bucket `json:"bucket,omitempty"`
-		Path   Path   `json:"path,omitempty"`
-		// yarn service 相关
-		Queue Queue `json:"queue,omitempty"`
-		// kms service 相关
-		KeyName KeyName `json:"keyname,omitempty"`
-	} `json:"resources"`
+	PolicyPriority  int               `json:"policyPriority"`
+	Description     string            `json:"description"`
+	IsAuditEnabled  bool              `json:"isAuditEnabled"`
+	Resources       Resource          `json:"resources"`
 	PolicyItems     []PolicyItems     `json:"policyItems,omitempty"`
 	DenyPolicyItems []DenyPolicyItems `json:"denyPolicyItems,omitempty"`
 	// IsDenyAllElse
@@ -432,11 +419,12 @@ type PluginsDefinitions struct {
 type ServiceType int
 
 const (
-	Hive ServiceType = iota
-	Hdfs
-	Cos
-	Yarn
-	kms
+	HiveServiceType ServiceType = iota
+	HdfsServiceType
+	CosServiceType
+	YarnServiceType
+	kmsServiceType
+	ChdfsServiceType
 )
 
 var serviceTypeName = []string{
@@ -445,24 +433,58 @@ var serviceTypeName = []string{
 	"cos",
 	"yarn",
 	"kms",
+	"chdfs",
 }
 
 func (st ServiceType) String() string {
-	if st >= Hive && st <= kms {
+	if st >= HiveServiceType && st <= ChdfsServiceType {
 		return serviceTypeName[st]
 	}
 	return "unknown service type"
 }
 
-func inServiceType(st int) bool {
-	if len(serviceTypeName)-1 < st {
-		return false
-	} else {
-		return true
-	}
-}
-
 type ServiceTypeId struct {
 	ServiceType   ServiceType `json:"serviceType"`
 	ServiceTypeId int         `json:"serviceTypeId"`
+}
+
+type ObjectType int
+
+const (
+	HiveService ObjectType = iota
+	Url
+	GlobalUdf
+	Udf
+	Database
+	Table
+	Column
+	Masking
+	RowFilter
+	Hdfs
+	Yarn
+	Cos
+	Chdfs
+)
+
+var objectTypeName = []string{
+	"HIVE SERVICE",
+	"URL",
+	"GLOBAL UDF",
+	"UDF",
+	"DATABASE",
+	"TABLE",
+	"COLUMN",
+	"MASKING",
+	"ROW FILTER",
+	"HDFS",
+	"YARN",
+	"COS",
+	"CHDFS",
+}
+
+func (ot ObjectType) String() string {
+	if ot >= HiveService && ot <= Chdfs {
+		return serviceTypeName[ot]
+	}
+	return "unknown service type"
 }

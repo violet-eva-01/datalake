@@ -9,19 +9,20 @@ import (
 	"github.com/violet-eva-01/datalake/util"
 	"io"
 	"net/http"
+	"strings"
 )
 
 type Ranger struct {
-	Host           string            `json:"host"`
-	Port           int               `json:"port"`
-	ApiPath        string            `json:"apiPath"`
-	Proxy          string            `json:"proxy"`
-	UserName       string            `json:"userName"`
-	PassWord       string            `json:"password"`
-	Headers        map[string]string `json:"headers"`
-	ServiceTypeIds []ServiceTypeId   `json:"serviceTypeIds"`
-	ServiceDefs    []ServiceDef      `json:"serviceDefs"`
-	PolicyBodies   []PolicyBody      `json:"policyBodies"`
+	Host                string                  `json:"host"`
+	Port                int                     `json:"port"`
+	ApiPath             string                  `json:"apiPath"`
+	Proxy               string                  `json:"proxy"`
+	UserName            string                  `json:"userName"`
+	PassWord            string                  `json:"password"`
+	Headers             map[string]string       `json:"headers"`
+	ServiceTypeIds      []ServiceTypeId         `json:"serviceTypeIds"`
+	ServiceDefs         []ServiceDef            `json:"serviceDefs"`
+	ServicePolicyBodies map[string][]PolicyBody `json:"service_policy_bodies"`
 }
 
 func NewRangerAll(host string, port int, apiPath string, proxy string, userName string, passWord string, tmpHeaders map[string]string) *Ranger {
@@ -36,13 +37,14 @@ func NewRangerAll(host string, port int, apiPath string, proxy string, userName 
 	headers["Accept"] = "application/json"
 
 	return &Ranger{
-		Host:     host,
-		Port:     port,
-		ApiPath:  apiPath,
-		Proxy:    proxy,
-		UserName: userName,
-		PassWord: passWord,
-		Headers:  headers,
+		Host:                host,
+		Port:                port,
+		ApiPath:             apiPath,
+		Proxy:               proxy,
+		UserName:            userName,
+		PassWord:            passWord,
+		Headers:             headers,
+		ServicePolicyBodies: make(map[string][]PolicyBody, len(serviceTypeName)),
 	}
 }
 
@@ -59,13 +61,14 @@ func NewRanger(host string, userName string, passWord string, tmpProxy ...string
 	}
 
 	return &Ranger{
-		Host:     host,
-		Port:     6080,
-		ApiPath:  "service",
-		Proxy:    proxy,
-		UserName: userName,
-		PassWord: passWord,
-		Headers:  headers,
+		Host:                host,
+		Port:                6080,
+		ApiPath:             "service",
+		Proxy:               proxy,
+		UserName:            userName,
+		PassWord:            passWord,
+		Headers:             headers,
+		ServicePolicyBodies: make(map[string][]PolicyBody, len(serviceTypeName)),
 	}
 }
 
@@ -91,7 +94,7 @@ func (r *Ranger) Request(method string, Api string, body []byte) (*http.Response
 // @param method 请求方法
 // @param Api ranger api
 // @param body 请求体
-// @param data 需要为struct指针
+// @param data 需要为[struct | struct slice]指针
 // @return error
 func (r *Ranger) RequestToStruct(method string, Api string, body []byte, data any) error {
 
@@ -139,50 +142,48 @@ func (r *Ranger) GetServiceDefs() error {
 	r.ServiceDefs = pd.ServiceDefs
 
 	for _, sd := range r.ServiceDefs {
-		for index, st := range serviceTypeName {
-			if sd.Name == st {
-				var tmpSTI ServiceTypeId
-				tmpSTI.ServiceTypeId = index
-				tmpSTI.ServiceType = ServiceType(index)
-				r.ServiceTypeIds = append(r.ServiceTypeIds, tmpSTI)
-				break
-			}
+		index := util.FindIndex(strings.ToLower(sd.Name), serviceTypeName)
+		if index >= 0 {
+			var tmpSTI ServiceTypeId
+			tmpSTI.ServiceTypeId = index
+			tmpSTI.ServiceType = ServiceType(index)
+			r.ServiceTypeIds = append(r.ServiceTypeIds, tmpSTI)
 		}
 	}
 
 	return nil
 }
 
-func (r *Ranger) GetServiceId(serviceType ServiceType) int {
-	for _, sti := range r.ServiceTypeIds {
-		if sti.ServiceType == serviceType {
-			return sti.ServiceTypeId
-		}
-	}
-	return -1
-}
+func (r *Ranger) GetPolicy(serviceTypeNames ...string) error {
 
-func (r *Ranger) GetPolicy(serviceTypes ...int) error {
-
-	if len(serviceTypes) == 0 {
-		pb := &[]PolicyBody{}
-		respErr := r.RequestToStruct("GET", "/public/v2/api/policy?serviceType=hive", nil, pb)
-		if respErr != nil {
-			return respErr
+	if len(serviceTypeNames) == 0 {
+		for _, sti := range r.ServiceTypeIds {
+			pb := &[]PolicyBody{}
+			respErr := r.RequestToStruct("GET", fmt.Sprintf("/public/v2/api/policy?pageSize=999999&serviceType=%s", sti.ServiceType.String()), nil, pb)
+			if respErr != nil {
+				return respErr
+			}
+			r.ServicePolicyBodies[sti.ServiceType.String()] = *pb
 		}
-		r.PolicyBodies = append(r.PolicyBodies, *pb...)
 	} else {
-		for _, serviceType := range serviceTypes {
-			if inServiceType(serviceType) {
+		for _, serviceType := range serviceTypeNames {
+			if index := util.FindIndex(strings.ToLower(serviceType), serviceTypeName); index >= 0 {
 				pb := &[]PolicyBody{}
-				respErr := r.RequestToStruct("GET", "/public/v2/api/policy", nil, pb)
+				respErr := r.RequestToStruct("GET", fmt.Sprintf("/public/v2/api/policy?pageSize=999999&serviceType=%s", serviceTypeNames[index]), nil, pb)
 				if respErr != nil {
 					return respErr
 				}
-				r.PolicyBodies = append(r.PolicyBodies, *pb...)
+				r.ServicePolicyBodies[serviceType] = *pb
 			}
 		}
 	}
 
 	return nil
+}
+
+func getPermissions(as []Accesses) (output []string) {
+	for _, i := range as {
+		output = append(output, i.Type)
+	}
+	return
 }
