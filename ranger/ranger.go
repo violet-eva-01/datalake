@@ -155,7 +155,7 @@ func (r *Ranger) GetServiceDefs() error {
 }
 
 func (r *Ranger) GetPolicy(serviceTypeNames ...string) error {
-
+	servicePolicyBodies := make(map[string][]PolicyBody, len(serviceTypeNames))
 	if len(serviceTypeNames) == 0 {
 		for _, sti := range r.ServiceTypeIds {
 			pb := &[]PolicyBody{}
@@ -163,7 +163,7 @@ func (r *Ranger) GetPolicy(serviceTypeNames ...string) error {
 			if respErr != nil {
 				return respErr
 			}
-			r.ServicePolicyBodies[sti.ServiceType.String()] = *pb
+			servicePolicyBodies[sti.ServiceType.String()] = *pb
 		}
 	} else {
 		for _, serviceType := range serviceTypeNames {
@@ -173,11 +173,11 @@ func (r *Ranger) GetPolicy(serviceTypeNames ...string) error {
 				if respErr != nil {
 					return respErr
 				}
-				r.ServicePolicyBodies[serviceType] = *pb
+				servicePolicyBodies[serviceType] = *pb
 			}
 		}
 	}
-
+	r.ServicePolicyBodies = servicePolicyBodies
 	return nil
 }
 
