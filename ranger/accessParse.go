@@ -306,21 +306,21 @@ func (a *Authorize) assignment(policy PolicyBody, oj object, permissions []strin
 func authorizeSliceAssignment(policy PolicyBody, ojs []object, users []string, roles []string, groups []string, permissions []string, permissionType string, vss []string, isTimeout bool, restrictions ...string) (output []Authorize) {
 
 	for _, oj := range ojs {
-		if len(users) > 0 {
+		if len(users) > 1 || (len(users) == 1 && strings.TrimSpace(users[0]) != "") {
 			for _, user := range users {
 				var tmpAuth Authorize
 				tmpAuth.assignment(policy, oj, permissions, permissionType, user, "USER", vss, isTimeout, restrictions...)
 				output = append(output, tmpAuth)
 			}
 		}
-		if len(groups) > 0 {
+		if len(groups) > 1 || (len(groups) == 1 && strings.TrimSpace(groups[0]) != "") {
 			for _, group := range groups {
 				var tmpAuth Authorize
 				tmpAuth.assignment(policy, oj, permissions, permissionType, group, "GROUP", vss, isTimeout, restrictions...)
 				output = append(output, tmpAuth)
 			}
 		}
-		if len(roles) > 0 {
+		if len(roles) > 1 || (len(roles) == 1 && strings.TrimSpace(roles[0]) != "") {
 			for _, role := range roles {
 				var tmpAuth Authorize
 				tmpAuth.assignment(policy, oj, permissions, permissionType, role, "ROLE", vss, isTimeout, restrictions...)
