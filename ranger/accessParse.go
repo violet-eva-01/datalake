@@ -39,9 +39,9 @@ func getObjectType(policy PolicyBody) ObjectType {
 
 	switch policy.ServiceType {
 	case "hive":
-		if len(policy.RowFilterPolicyItems) > 0 {
+		if len(policy.DataMaskPolicyItems) > 0 {
 			return Masking
-		} else if len(policy.DataMaskPolicyItems) > 0 {
+		} else if len(policy.RowFilterPolicyItems) > 0 {
 			return RowFilter
 		} else if len(policy.Resources.HiveService.Values) > 0 {
 			return HiveService
@@ -199,27 +199,75 @@ func getObject(policy PolicyBody) (output []object) {
 	return
 }
 
+// rangerVSParse
+// @Description:
+// @param input 2006/1/2 15:04:05
+// @return output
+// @return err
+func rangerVSParse(input string) (output string) {
+	var (
+		year, mount, day     string
+		hour, minute, second string
+	)
+	timeArr := strings.Split(input, " ")
+	splitYMD := strings.Split(timeArr[0], "/")
+	year = splitYMD[0]
+	if len(splitYMD[1]) != 2 {
+		mount = "0" + splitYMD[1]
+	} else {
+		mount = splitYMD[1]
+	}
+	if len(splitYMD[2]) != 2 {
+		day = "0" + splitYMD[2]
+	} else {
+		day = splitYMD[2]
+	}
+
+	splitHMS := strings.Split(timeArr[1], ":")
+	if len(splitHMS[0]) != 2 {
+		hour = "0" + hour
+	} else {
+		hour = splitHMS[0]
+	}
+	if len(splitHMS[1]) != 2 {
+		minute = "0" + minute
+	} else {
+		minute = splitHMS[1]
+	}
+	if len(splitHMS[2]) != 2 {
+		second = "0" + second
+	} else {
+		second = splitHMS[2]
+	}
+
+	output = year + "-" + mount + "-" + day + " " + hour + ":" + minute + ":" + second
+
+	return
+}
+
 func getValiditySchedules(vss []ValiditySchedules) (output []string) {
 
 	for _, vs := range vss {
-
-		tmpStr := strings.ReplaceAll(vs.StartTime, "/", "-") + "~" + strings.ReplaceAll(vs.EndTime, "/", "-") + "~" + vs.TimeZone
+		startTime := rangerVSParse(vs.StartTime)
+		endTime := rangerVSParse(vs.EndTime)
+		tmpStr := startTime + "~" + endTime + "~" + vs.TimeZone
 		output = append(output, tmpStr)
 	}
 
 	return
 }
 
-func judgeTimeout(vss []ValiditySchedules) (isTimeout bool, err error) {
+func judgeTimeout(vss []string) (isTimeout bool, err error) {
 
 	for _, vs := range vss {
+		timeArr := strings.Split(vs, "~")
 		var location *time.Location
 		var parse time.Time
-		location, err = time.LoadLocation(vs.TimeZone)
+		location, err = time.LoadLocation(timeArr[2])
 		if err != nil {
 			return
 		}
-		parse, err = time.ParseInLocation("2006/01/02 15:04:05", vs.EndTime, location)
+		parse, err = time.ParseInLocation("2006/01/02 15:04:05", timeArr[1], location)
 		if err != nil {
 			return
 		}
@@ -258,20 +306,26 @@ func (a *Authorize) assignment(policy PolicyBody, oj object, permissions []strin
 func authorizeSliceAssignment(policy PolicyBody, ojs []object, users []string, roles []string, groups []string, permissions []string, permissionType string, vss []string, isTimeout bool, restrictions ...string) (output []Authorize) {
 
 	for _, oj := range ojs {
-		for _, user := range users {
-			var tmpAuth Authorize
-			tmpAuth.assignment(policy, oj, permissions, permissionType, user, "USER", vss, isTimeout, restrictions...)
-			output = append(output, tmpAuth)
+		if len(users) > 0 {
+			for _, user := range users {
+				var tmpAuth Authorize
+				tmpAuth.assignment(policy, oj, permissions, permissionType, user, "USER", vss, isTimeout, restrictions...)
+				output = append(output, tmpAuth)
+			}
 		}
-		for _, role := range roles {
-			var tmpAuth Authorize
-			tmpAuth.assignment(policy, oj, permissions, permissionType, role, "ROLE", vss, isTimeout, restrictions...)
-			output = append(output, tmpAuth)
+		if len(groups) > 0 {
+			for _, group := range groups {
+				var tmpAuth Authorize
+				tmpAuth.assignment(policy, oj, permissions, permissionType, group, "GROUP", vss, isTimeout, restrictions...)
+				output = append(output, tmpAuth)
+			}
 		}
-		for _, group := range groups {
-			var tmpAuth Authorize
-			tmpAuth.assignment(policy, oj, permissions, permissionType, group, "GROUP", vss, isTimeout, restrictions...)
-			output = append(output, tmpAuth)
+		if len(roles) > 0 {
+			for _, role := range roles {
+				var tmpAuth Authorize
+				tmpAuth.assignment(policy, oj, permissions, permissionType, role, "ROLE", vss, isTimeout, restrictions...)
+				output = append(output, tmpAuth)
+			}
 		}
 	}
 
@@ -281,21 +335,25 @@ func authorizeSliceAssignment(policy PolicyBody, ojs []object, users []string, r
 func (pb *PolicyBody) hivePolicyBodyParse() ([]Authorize, error) {
 	var (
 		authorizes []Authorize
+		vss        []string
+		isTimeout  bool
 	)
 
 	objects := getObject(*pb)
-	vss := getValiditySchedules(pb.ValiditySchedules)
-
-	timeout, err := judgeTimeout(pb.ValiditySchedules)
-	if err != nil {
-		return nil, err
+	if len(pb.ValiditySchedules) > 0 {
+		vss = getValiditySchedules(pb.ValiditySchedules)
+		timeout, err := judgeTimeout(vss)
+		if err != nil {
+			return nil, err
+		}
+		isTimeout = timeout
 	}
 
 	if len(pb.RowFilterPolicyItems) > 0 {
 		for _, rf := range pb.RowFilterPolicyItems {
 			permissions := getPermissions(rf.Accesses)
 			restriction := rf.RowFilterInfo.FilterExpr
-			authorizeSlice := authorizeSliceAssignment(*pb, objects, rf.Users, rf.Roles, rf.Groups, permissions, "", vss, timeout, restriction)
+			authorizeSlice := authorizeSliceAssignment(*pb, objects, rf.Users, rf.Roles, rf.Groups, permissions, "", vss, isTimeout, restriction)
 			authorizes = append(authorizes, authorizeSlice...)
 		}
 	}
@@ -304,7 +362,7 @@ func (pb *PolicyBody) hivePolicyBodyParse() ([]Authorize, error) {
 		for _, dmp := range pb.DataMaskPolicyItems {
 			permissions := getPermissions(dmp.Accesses)
 			restriction := dmp.DataMaskInfo.DataMaskType
-			authorizeSlice := authorizeSliceAssignment(*pb, objects, dmp.Users, dmp.Roles, dmp.Groups, permissions, "", vss, timeout, restriction)
+			authorizeSlice := authorizeSliceAssignment(*pb, objects, dmp.Users, dmp.Roles, dmp.Groups, permissions, "", vss, isTimeout, restriction)
 			authorizes = append(authorizes, authorizeSlice...)
 		}
 	}
@@ -313,7 +371,7 @@ func (pb *PolicyBody) hivePolicyBodyParse() ([]Authorize, error) {
 		permissionType := "PolicyItem"
 		for _, pi := range pb.PolicyItems {
 			permissions := getPermissions(pi.Accesses)
-			authorizeSlice := authorizeSliceAssignment(*pb, objects, pi.Users, pi.Roles, pi.Groups, permissions, permissionType, vss, timeout)
+			authorizeSlice := authorizeSliceAssignment(*pb, objects, pi.Users, pi.Roles, pi.Groups, permissions, permissionType, vss, isTimeout)
 			authorizes = append(authorizes, authorizeSlice...)
 		}
 	}
@@ -322,7 +380,7 @@ func (pb *PolicyBody) hivePolicyBodyParse() ([]Authorize, error) {
 		permissionType := "DenyPolicyItem"
 		for _, dpi := range pb.DenyPolicyItems {
 			permissions := getPermissions(dpi.Accesses)
-			authorizeSlice := authorizeSliceAssignment(*pb, objects, dpi.Users, dpi.Roles, dpi.Groups, permissions, permissionType, vss, timeout)
+			authorizeSlice := authorizeSliceAssignment(*pb, objects, dpi.Users, dpi.Roles, dpi.Groups, permissions, permissionType, vss, isTimeout)
 			authorizes = append(authorizes, authorizeSlice...)
 		}
 	}
@@ -331,7 +389,7 @@ func (pb *PolicyBody) hivePolicyBodyParse() ([]Authorize, error) {
 		permissionType := "AllowException"
 		for _, ae := range pb.AllowExceptions {
 			permissions := getPermissions(ae.Accesses)
-			authorizeSlice := authorizeSliceAssignment(*pb, objects, ae.Users, ae.Roles, ae.Groups, permissions, permissionType, vss, timeout)
+			authorizeSlice := authorizeSliceAssignment(*pb, objects, ae.Users, ae.Roles, ae.Groups, permissions, permissionType, vss, isTimeout)
 			authorizes = append(authorizes, authorizeSlice...)
 		}
 	}
@@ -340,7 +398,7 @@ func (pb *PolicyBody) hivePolicyBodyParse() ([]Authorize, error) {
 		permissionType := "DenyExceptions"
 		for _, de := range pb.DenyExceptions {
 			permissions := getPermissions(de.Accesses)
-			authorizeSlice := authorizeSliceAssignment(*pb, objects, de.Users, de.Roles, de.Groups, permissions, permissionType, vss, timeout)
+			authorizeSlice := authorizeSliceAssignment(*pb, objects, de.Users, de.Roles, de.Groups, permissions, permissionType, vss, isTimeout)
 			authorizes = append(authorizes, authorizeSlice...)
 		}
 	}
