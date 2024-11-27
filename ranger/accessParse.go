@@ -196,7 +196,7 @@ func getObject(policy PolicyBody) (output []object) {
 		panic("unhandled default case")
 	}
 
-	return nil
+	return
 }
 
 func getValiditySchedules(vss []ValiditySchedules) (output []string) {
