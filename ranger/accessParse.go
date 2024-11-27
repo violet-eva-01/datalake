@@ -267,7 +267,7 @@ func judgeTimeout(vss []string) (isTimeout bool, err error) {
 		if err != nil {
 			return
 		}
-		parse, err = time.ParseInLocation("2006/01/02 15:04:05", timeArr[1], location)
+		parse, err = time.ParseInLocation("2006-01-02 15:04:05", timeArr[1], location)
 		if err != nil {
 			return
 		}
