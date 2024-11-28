@@ -7,8 +7,6 @@ import (
 )
 
 func TestRanger(t *testing.T) {
-	var s = make(map[string]string, 4)
-	s["name"] = "aaaaa"
-	s["type"] = "man"
-	fmt.Println(s)
+	id := GetTencentUsersId("violet")
+	fmt.Println(id)
 }

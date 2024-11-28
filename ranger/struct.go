@@ -418,7 +418,7 @@ type PluginsDefinitions struct {
 	ServiceDefs []ServiceDef `json:"serviceDefs"`
 }
 
-type UserPerm struct {
+type TencentUserPerm struct {
 	Id         int       `json:"id"`
 	CreateDate time.Time `json:"createDate"`
 	UpdateDate time.Time `json:"updateDate"`
@@ -431,30 +431,45 @@ type UserPerm struct {
 	ModuleName string    `json:"moduleName"`
 }
 
-type VXPortalUser struct {
-	Id               int           `json:"id"`
-	CreateDate       interface{}   `json:"createDate"`
-	UpdateDate       interface{}   `json:"updateDate"`
+var tencentUserInformationIndex = make(map[string]int)
+
+type TencentVXPortalUser struct {
+	Id               int               `json:"id"`
+	CreateDate       interface{}       `json:"createDate"`
+	UpdateDate       interface{}       `json:"updateDate"`
+	LoginId          string            `json:"loginId"`
+	Status           int               `json:"status"`
+	PublicScreenName string            `json:"publicScreenName"`
+	UserSource       int               `json:"userSource"`
+	UserRoleList     []string          `json:"userRoleList"`
+	UserPermList     []TencentUserPerm `json:"userPermList"`
+	GroupPermissions []interface{}     `json:"groupPermissions"`
+	FirstName        string            `json:"firstName,omitempty"`
+	LastName         string            `json:"lastName,omitempty"`
+}
+
+type TencentUsers struct {
+	StartIndex    int                   `json:"startIndex"`
+	PageSize      int                   `json:"pageSize"`
+	TotalCount    int                   `json:"totalCount"`
+	ResultSize    int                   `json:"resultSize"`
+	SortType      string                `json:"sortType"`
+	SortBy        string                `json:"sortBy"`
+	QueryTimeMS   int64                 `json:"queryTimeMS"`
+	VXPortalUsers []TencentVXPortalUser `json:"vXPortalUsers"`
+}
+
+type TencentUserInformation struct {
+	UserId           int           `json:"userId"`
+	UserName         string        `json:"userName"`
+	FirstName        string        `json:"firstName,omitempty"`
+	LastName         string        `json:"lastName,omitempty"`
 	LoginId          string        `json:"loginId"`
-	Status           int           `json:"status"`
 	PublicScreenName string        `json:"publicScreenName"`
 	UserSource       int           `json:"userSource"`
 	UserRoleList     []string      `json:"userRoleList"`
-	UserPermList     []UserPerm    `json:"userPermList"`
 	GroupPermissions []interface{} `json:"groupPermissions"`
-	FirstName        string        `json:"firstName,omitempty"`
-	LastName         string        `json:"lastName,omitempty"`
-}
-
-type Users struct {
-	StartIndex    int            `json:"startIndex"`
-	PageSize      int            `json:"pageSize"`
-	TotalCount    int            `json:"totalCount"`
-	ResultSize    int            `json:"resultSize"`
-	SortType      string         `json:"sortType"`
-	SortBy        string         `json:"sortBy"`
-	QueryTimeMS   int64          `json:"queryTimeMS"`
-	VXPortalUsers []VXPortalUser `json:"vXPortalUsers"`
+	Status           int           `json:"status"`
 }
 
 type ServiceType int
