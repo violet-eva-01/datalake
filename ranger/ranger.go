@@ -13,18 +13,17 @@ import (
 )
 
 type Ranger struct {
-	Host                string                   `json:"host"`
-	Port                int                      `json:"port"`
-	ApiPath             string                   `json:"apiPath"`
-	Proxy               string                   `json:"proxy"`
-	UserName            string                   `json:"userName"`
-	PassWord            string                   `json:"password"`
-	Headers             map[string]string        `json:"headers"`
-	ServiceTypeIds      []ServiceTypeId          `json:"serviceTypeIds"`
-	ServiceDefs         []ServiceDef             `json:"serviceDefs"`
-	ServicePolicyBodies map[string][]PolicyBody  `json:"service_policy_bodies"`
-	Users               []TencentVXPortalUser    `json:"users"`
-	UserInformation     []TencentUserInformation `json:"userInformation"`
+	Host                string                  `json:"host"`
+	Port                int                     `json:"port"`
+	ApiPath             string                  `json:"apiPath"`
+	Proxy               string                  `json:"proxy"`
+	UserName            string                  `json:"userName"`
+	PassWord            string                  `json:"password"`
+	Headers             map[string]string       `json:"headers"`
+	ServiceTypeIds      []ServiceTypeId         `json:"serviceTypeIds"`
+	ServiceDefs         []ServiceDef            `json:"serviceDefs"`
+	ServicePolicyBodies map[string][]PolicyBody `json:"service_policy_bodies"`
+	VXUsers             []VXUser                `json:"users"`
 }
 
 func NewRangerAll(host string, port int, apiPath string, proxy string, userName string, passWord string, tmpHeaders map[string]string) *Ranger {
@@ -185,29 +184,44 @@ func GetTencentUsersId(userName string) int {
 	return tencentUserInformationIndex[userName]
 }
 
-func (r *Ranger) GetTencentUsers() error {
-	users := &TencentUsers{}
-	err := r.RequestToStruct("GET", "/users?pageSize=99999", nil, users)
+func (r *Ranger) GetXUsers() error {
+	xUsers := &XUsers{}
+	err := r.RequestToStruct("GET", "/xusers/users", nil, xUsers)
 	if err != nil {
 		return err
 	}
 
-	r.Users = users.VXPortalUsers
+	r.VXUsers = xUsers.VXUsers
 
-	for _, i := range r.Users {
-		var tmpUIF TencentUserInformation
-		tmpUIF.UserId = i.UserPermList[0].UserId
-		tmpUIF.UserName = i.UserPermList[0].UserName
-		tencentUserInformationIndex[tmpUIF.UserName] = tmpUIF.UserId
-		tmpUIF.FirstName = i.FirstName
-		tmpUIF.LastName = i.LastName
-		tmpUIF.LoginId = i.LoginId
-		tmpUIF.PublicScreenName = i.PublicScreenName
-		tmpUIF.UserSource = i.UserSource
-		tmpUIF.UserRoleList = i.UserRoleList
-		tmpUIF.GroupPermissions = i.GroupPermissions
-		tmpUIF.Status = i.Status
-		r.UserInformation = append(r.UserInformation, tmpUIF)
+	for _, i := range r.VXUsers {
+		tencentUserInformationIndex[i.Name] = i.Id
+	}
+
+	return nil
+}
+
+func (r *Ranger) ChangePassword(userId int, newPassword string) error {
+
+	var (
+		userInformation = &VXUser{}
+		reqBody         []byte
+	)
+
+	err := r.RequestToStruct("GET", fmt.Sprintf("/xusers/secure/users/%d", userId), nil, userInformation)
+	if err != nil {
+		return err
+	}
+
+	userInformation.Password = newPassword
+
+	reqBody, err = json.Marshal(userInformation)
+	if err != nil {
+		return err
+	}
+
+	err = r.RequestToStruct("PUT", fmt.Sprintf("/xusers/secure/users/%d", userId), reqBody, nil)
+	if err != nil {
+		return err
 	}
 
 	return nil
