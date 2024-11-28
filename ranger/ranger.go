@@ -36,6 +36,7 @@ func NewRangerAll(host string, port int, apiPath string, proxy string, userName 
 		headers[key] = value
 	}
 	headers["Accept"] = "application/json"
+	headers["Content-Type"] = "application/json"
 
 	return &Ranger{
 		Host:                host,
@@ -180,7 +181,7 @@ func (r *Ranger) GetPolicy(serviceTypeNames ...string) error {
 	return nil
 }
 
-func GetTencentUsersId(userName string) int {
+func GetXUsersId(userName string) int {
 	return tencentUserInformationIndex[userName]
 }
 
@@ -200,29 +201,28 @@ func (r *Ranger) GetXUsers() error {
 	return nil
 }
 
-func (r *Ranger) ChangePassword(userId int, newPassword string) error {
+func (r *Ranger) ChangePassword(userId int, newPassword string) (userInformation *VXUser, err error) {
 
 	var (
-		userInformation = &VXUser{}
-		reqBody         []byte
+		reqBody []byte
 	)
 
-	err := r.RequestToStruct("GET", fmt.Sprintf("/xusers/secure/users/%d", userId), nil, userInformation)
+	err = r.RequestToStruct("GET", fmt.Sprintf("/xusers/secure/users/%d", userId), nil, userInformation)
 	if err != nil {
-		return err
+		return
 	}
 
 	userInformation.Password = newPassword
 
 	reqBody, err = json.Marshal(userInformation)
 	if err != nil {
-		return err
+		return
 	}
 
-	err = r.RequestToStruct("PUT", fmt.Sprintf("/xusers/secure/users/%d", userId), reqBody, nil)
+	err = r.RequestToStruct("PUT", fmt.Sprintf("/xusers/secure/users/%d", userId), reqBody, userInformation)
 	if err != nil {
-		return err
+		return
 	}
 
-	return nil
+	return
 }
