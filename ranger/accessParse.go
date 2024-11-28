@@ -332,6 +332,13 @@ func authorizeSliceAssignment(policy PolicyBody, ojs []object, users []string, r
 	return
 }
 
+func getPermissions(as []Accesses) (output []string) {
+	for _, i := range as {
+		output = append(output, i.Type)
+	}
+	return
+}
+
 func (pb *PolicyBody) hivePolicyBodyParse() ([]Authorize, error) {
 	var (
 		authorizes []Authorize

@@ -1,6 +1,8 @@
 // Package ranger @author: Violet-Eva @date  : 2024/11/22 @notes :
 package ranger
 
+import "time"
+
 type DatabaseResource struct {
 	Values      []string `json:"values"`
 	IsExcludes  bool     `json:"isExcludes"`
@@ -414,6 +416,45 @@ type PluginsDefinitions struct {
 	ResultSize  int          `json:"resultSize"`
 	QueryTimeMS int64        `json:"queryTimeMS"`
 	ServiceDefs []ServiceDef `json:"serviceDefs"`
+}
+
+type UserPerm struct {
+	Id         int       `json:"id"`
+	CreateDate time.Time `json:"createDate"`
+	UpdateDate time.Time `json:"updateDate"`
+	Owner      string    `json:"owner,omitempty"`
+	UpdatedBy  string    `json:"updatedBy,omitempty"`
+	UserId     int       `json:"userId"`
+	ModuleId   int       `json:"moduleId"`
+	IsAllowed  int       `json:"isAllowed"`
+	UserName   string    `json:"userName"`
+	ModuleName string    `json:"moduleName"`
+}
+
+type VXPortalUser struct {
+	Id               int           `json:"id"`
+	CreateDate       interface{}   `json:"createDate"`
+	UpdateDate       interface{}   `json:"updateDate"`
+	LoginId          string        `json:"loginId"`
+	Status           int           `json:"status"`
+	PublicScreenName string        `json:"publicScreenName"`
+	UserSource       int           `json:"userSource"`
+	UserRoleList     []string      `json:"userRoleList"`
+	UserPermList     []UserPerm    `json:"userPermList"`
+	GroupPermissions []interface{} `json:"groupPermissions"`
+	FirstName        string        `json:"firstName,omitempty"`
+	LastName         string        `json:"lastName,omitempty"`
+}
+
+type Users struct {
+	StartIndex    int            `json:"startIndex"`
+	PageSize      int            `json:"pageSize"`
+	TotalCount    int            `json:"totalCount"`
+	ResultSize    int            `json:"resultSize"`
+	SortType      string         `json:"sortType"`
+	SortBy        string         `json:"sortBy"`
+	QueryTimeMS   int64          `json:"queryTimeMS"`
+	VXPortalUsers []VXPortalUser `json:"vXPortalUsers"`
 }
 
 type ServiceType int

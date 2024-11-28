@@ -23,6 +23,7 @@ type Ranger struct {
 	ServiceTypeIds      []ServiceTypeId         `json:"serviceTypeIds"`
 	ServiceDefs         []ServiceDef            `json:"serviceDefs"`
 	ServicePolicyBodies map[string][]PolicyBody `json:"service_policy_bodies"`
+	UserInformation     []VXPortalUser          `json:"user_information"`
 }
 
 func NewRangerAll(host string, port int, apiPath string, proxy string, userName string, passWord string, tmpHeaders map[string]string) *Ranger {
@@ -134,7 +135,7 @@ func (r *Ranger) RequestToStruct(method string, Api string, body []byte, data an
 func (r *Ranger) GetServiceDefs() error {
 	pd := &PluginsDefinitions{}
 
-	respErr := r.RequestToStruct("GET", "/plugins/definitions", nil, pd)
+	respErr := r.RequestToStruct("GET", "/plugins/definitions?pageSize=99999", nil, pd)
 	if respErr != nil {
 		return respErr
 	}
@@ -179,9 +180,14 @@ func (r *Ranger) GetPolicy(serviceTypeNames ...string) error {
 	return nil
 }
 
-func getPermissions(as []Accesses) (output []string) {
-	for _, i := range as {
-		output = append(output, i.Type)
+func (r *Ranger) GetUsers() error {
+	users := &Users{}
+	err := r.RequestToStruct("GET", "/users?pageSize=99999", nil, users)
+	if err != nil {
+		return err
 	}
-	return
+
+	r.UserInformation = users.VXPortalUsers
+
+	return nil
 }
