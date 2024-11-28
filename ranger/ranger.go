@@ -201,10 +201,11 @@ func (r *Ranger) GetXUsers() error {
 	return nil
 }
 
-func (r *Ranger) ChangePassword(userId int, newPassword string) (userInformation *VXUser, err error) {
+func (r *Ranger) ChangePassword(userId int, newPassword string) (vxUser VXUser, err error) {
 
 	var (
-		reqBody []byte
+		userInformation = &VXUser{}
+		reqBody         []byte
 	)
 
 	err = r.RequestToStruct("GET", fmt.Sprintf("/xusers/secure/users/%d", userId), nil, userInformation)
@@ -223,6 +224,8 @@ func (r *Ranger) ChangePassword(userId int, newPassword string) (userInformation
 	if err != nil {
 		return
 	}
+
+	vxUser = *userInformation
 
 	return
 }
