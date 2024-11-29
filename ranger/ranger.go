@@ -57,6 +57,7 @@ func NewRanger(host string, userName string, passWord string, tmpProxy ...string
 	)
 
 	headers["Accept"] = "application/json"
+	headers["Content-Type"] = "application/json"
 
 	if len(tmpProxy) > 0 {
 		proxy = tmpProxy[0]
