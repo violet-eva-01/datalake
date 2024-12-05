@@ -7,6 +7,6 @@ import (
 )
 
 func TestRanger(t *testing.T) {
-	id := GetTencentUsersId("violet")
+	id := GetXUsersId("violet")
 	fmt.Println(id)
 }

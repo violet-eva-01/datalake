@@ -88,6 +88,9 @@ func (r *Ranger) Request(method string, Api string, body []byte) (*http.Response
 	if respErr != nil {
 		return nil, respErr
 	}
+	if resp.StatusCode != 200 {
+		return nil, errors.New(resp.Status)
+	}
 
 	return resp, respErr
 }
@@ -101,14 +104,7 @@ func (r *Ranger) Request(method string, Api string, body []byte) (*http.Response
 // @return error
 func (r *Ranger) RequestToStruct(method string, Api string, body []byte, data any) error {
 
-	request, reqErr := http.NewRequest(method, fmt.Sprintf("http://%s:%d/%s%s", r.Host, r.Port, r.ApiPath, Api), bytes.NewBuffer(body))
-	if reqErr != nil {
-		return reqErr
-	}
-
-	util.SetRequestBasicAuth(request, r.UserName, r.PassWord)
-	util.SetRequestHeader(request, r.Headers)
-	resp, respErr := util.GetResponse(request, r.Proxy)
+	resp, respErr := r.Request(method, Api, body)
 	if respErr != nil {
 		return respErr
 	}
@@ -131,7 +127,7 @@ func (r *Ranger) RequestToStruct(method string, Api string, body []byte, data an
 		return juErr
 	}
 
-	return respErr
+	return nil
 }
 
 func (r *Ranger) GetServiceDefs() error {
