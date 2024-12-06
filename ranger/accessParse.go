@@ -296,7 +296,7 @@ func (a *Authorize) assignment(policy PolicyBody, oj object, permissions []strin
 	a.IsEnable = policy.IsEnabled
 	a.IsOverride = policy.PolicyPriority != 0
 	a.ValiditySchedules = vss
-	if !a.IsEnable || isTimeout {
+	if !a.IsEnable || isTimeout || (len(policy.AllowExceptions) > 0 && len(policy.PolicyItems) <= 0 && permissionType == "AllowException") || (len(policy.DenyExceptions) > 0 && len(policy.DenyPolicyItems) <= 0 && permissionType == "DenyException") {
 		a.Status = false
 	} else {
 		a.Status = true
@@ -339,7 +339,7 @@ func getPermissions(as []Accesses) (output []string) {
 	return
 }
 
-func (pb *PolicyBody) hivePolicyBodyParse() ([]Authorize, error) {
+func (pb *PolicyBody) policyBodyParse() ([]Authorize, error) {
 	var (
 		authorizes []Authorize
 		vss        []string
@@ -402,7 +402,7 @@ func (pb *PolicyBody) hivePolicyBodyParse() ([]Authorize, error) {
 	}
 
 	if len(pb.DenyExceptions) > 0 {
-		permissionType := "DenyExceptions"
+		permissionType := "DenyException"
 		for _, de := range pb.DenyExceptions {
 			permissions := getPermissions(de.Accesses)
 			authorizeSlice := authorizeSliceAssignment(*pb, objects, de.Users, de.Roles, de.Groups, permissions, permissionType, vss, isTimeout)
@@ -413,25 +413,31 @@ func (pb *PolicyBody) hivePolicyBodyParse() ([]Authorize, error) {
 	return authorizes, nil
 }
 
-func (r *Ranger) HiveAccessParse() ([]Authorize, error) {
+type AccessFilter func([]Authorize) []Authorize
+
+func (r *Ranger) AccessParse(st ServiceType, filters ...AccessFilter) ([]Authorize, error) {
 
 	var (
 		authorizes []Authorize
 	)
 
-	if r.ServicePolicyBodies["hive"] == nil {
-		gpErr := r.GetPolicy("hive")
+	if r.ServicePolicyBodies[st.String()] == nil {
+		gpErr := r.GetPolicy(st.String())
 		if gpErr != nil {
 			return nil, gpErr
 		}
 	}
 
-	for _, hivePolicy := range r.ServicePolicyBodies["hive"] {
-		authorizeSlice, err := hivePolicy.hivePolicyBodyParse()
+	for _, policy := range r.ServicePolicyBodies[st.String()] {
+		authorizeSlice, err := policy.policyBodyParse()
 		if err != nil {
 			return nil, err
 		}
 		authorizes = append(authorizes, authorizeSlice...)
+	}
+
+	for _, filter := range filters {
+		authorizes = filter(authorizes)
 	}
 
 	return authorizes, nil
