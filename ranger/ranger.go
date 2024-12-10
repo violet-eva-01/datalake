@@ -178,6 +178,23 @@ func (r *Ranger) GetPolicy(serviceTypeNames ...string) error {
 	return nil
 }
 
+func (r *Ranger) GetPolicyById(ids ...int) (pbs []PolicyBody, err error) {
+	if len(ids) == 0 {
+		err = errors.New("id can not be empty")
+		return
+	} else {
+		for _, id := range ids {
+			pb := &PolicyBody{}
+			err = r.RequestToStruct("GET", fmt.Sprintf("/public/v2/api/policy/%d", id), nil, pb)
+			if err != nil {
+				return
+			}
+			pbs = append(pbs, *pb)
+		}
+	}
+	return
+}
+
 func GetXUsersId(userName string) int {
 	return tencentUserInformationIndex[userName]
 }

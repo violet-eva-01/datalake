@@ -287,12 +287,12 @@ func (a *Authorize) assignment(policy PolicyBody, oj object, permissions []strin
 	a.Permission = permissions
 	a.ObjectType = oj.ObjectType
 	a.ObjectName = oj.ObjectName
-	a.ObjectDBName = oj.ObjectDBName
-	a.ObjectTBLName = oj.ObjectTBLName
+	a.ObjectDBName = strings.TrimSpace(oj.ObjectDBName)
+	a.ObjectTBLName = strings.TrimSpace(oj.ObjectTBLName)
 	a.ObjectColumnName = oj.ObjectColumnName
 	a.ObjectRestriction = restrictions
 	a.GranteeType = GranteeType
-	a.Grantee = grantee
+	a.Grantee = strings.TrimSpace(grantee)
 	a.IsEnable = policy.IsEnabled
 	a.IsOverride = policy.PolicyPriority != 0
 	a.ValiditySchedules = vss
@@ -413,9 +413,7 @@ func (pb *PolicyBody) policyBodyParse() ([]Authorize, error) {
 	return authorizes, nil
 }
 
-type AccessFilter func([]Authorize) []Authorize
-
-func (r *Ranger) AccessParse(st ServiceType, filters ...AccessFilter) ([]Authorize, error) {
+func (r *Ranger) AccessParse(st ServiceType, filters ...func([]Authorize) []Authorize) ([]Authorize, error) {
 
 	var (
 		authorizes []Authorize
