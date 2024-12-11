@@ -2,12 +2,14 @@
 package ranger
 
 import (
+	"errors"
 	"github.com/violet-eva-01/datalake/util"
 	"strings"
 	"time"
 )
 
 type Authorize struct {
+	PolicyId          int      `json:"policy_id"`
 	PolicyName        string   `json:"policy_name"`
 	PermissionType    string   `json:"permission_type"`
 	Permission        []string `json:"permission"`
@@ -282,6 +284,7 @@ func judgeTimeout(vss []string) (isTimeout bool, err error) {
 }
 
 func (a *Authorize) assignment(policy PolicyBody, oj object, permissions []string, permissionType string, grantee string, GranteeType string, vss []string, isTimeout bool, restrictions ...string) {
+	a.PolicyId = policy.Id
 	a.PolicyName = policy.Name
 	a.PermissionType = permissionType
 	a.Permission = permissions
@@ -427,6 +430,31 @@ func (r *Ranger) AccessParse(st ServiceType, filters ...func([]Authorize) []Auth
 	}
 
 	for _, policy := range r.ServicePolicyBodies[st.String()] {
+		authorizeSlice, err := policy.policyBodyParse()
+		if err != nil {
+			return nil, err
+		}
+		authorizes = append(authorizes, authorizeSlice...)
+	}
+
+	for _, filter := range filters {
+		authorizes = filter(authorizes)
+	}
+
+	return authorizes, nil
+}
+
+func (r *Ranger) AccessParseByPolicyBody(policyBodies []PolicyBody, filters ...func([]Authorize) []Authorize) ([]Authorize, error) {
+
+	var (
+		authorizes []Authorize
+	)
+
+	if len(policyBodies) == 0 {
+		return authorizes, errors.New("no policy body found")
+	}
+
+	for _, policy := range policyBodies {
 		authorizeSlice, err := policy.policyBodyParse()
 		if err != nil {
 			return nil, err
