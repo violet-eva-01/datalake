@@ -7,6 +7,7 @@ import (
 )
 
 func TestRanger(t *testing.T) {
-	id := GetXUsersId("violet")
-	fmt.Println(id)
+	var a []int
+	a[0] = 1
+	fmt.Println(a)
 }

@@ -8,6 +8,27 @@ import (
 	"strings"
 )
 
+func StringSliceIntersection(slice1, slice2 []string) []string {
+
+	elements := make(map[string]bool)
+	intersect := make([]string, 0)
+
+	for _, v := range slice1 {
+		elements[v] = true
+	}
+
+	for _, v := range slice2 {
+		if elements[v] {
+			intersect = append(intersect, v)
+			delete(elements, v)
+		}
+	}
+
+	sort.Strings(intersect)
+
+	return intersect
+}
+
 func In(str string, strArray []string, isSort bool) bool {
 	if isSort {
 		sort.Strings(strArray)
