@@ -97,7 +97,7 @@ func NewHiveConn(retryCount int, retryInterval time.Duration, timeOut int, infor
 	}
 }
 
-func (hc *HiveConn) KerberosAuthentication() error {
+func (hc *HiveConn) kerberosAuthentication() error {
 	for i := 0; i < hc.RetryCount; i++ {
 		err := hc.KA.kinit()
 		if err != nil {
@@ -119,7 +119,7 @@ func (hc *HiveConn) KerberosAuthentication() error {
 func (hc *HiveConn) GetHiveConn() (err error) {
 
 	if hc.HCI.Auth == "KERBEROS" {
-		err = hc.KerberosAuthentication()
+		err = hc.kerberosAuthentication()
 		if err != nil {
 			return
 		}
@@ -131,7 +131,7 @@ func (hc *HiveConn) GetHiveConn() (err error) {
 		hiveServer2Host := hiveServer2Hosts[i]
 		hiveServer2Hosts = append(hiveServer2Hosts[:i], hiveServer2Hosts[i+1:]...)
 		hc.Conn, err = hc.HCI.getHiveConn(hiveServer2Host)
-		if err != nil {
+		if j < hc.RetryCount && err != nil {
 			time.Sleep(hc.RetryInterval * time.Second)
 			continue
 		} else {
