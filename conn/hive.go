@@ -131,16 +131,16 @@ func (hc *HiveConn) GetHiveConn() (err error) {
 		hiveServer2Host := hiveServer2Hosts[i]
 		hiveServer2Hosts = append(hiveServer2Hosts[:i], hiveServer2Hosts[i+1:]...)
 		hc.Conn, err = hc.HCI.getHiveConn(hiveServer2Host)
-		if j < hc.RetryCount && err != nil {
+		if err != nil {
 			time.Sleep(hc.RetryInterval * time.Second)
 			continue
 		} else {
-			err = fmt.Errorf("connect HS2 failed ,err is %s", err)
-			color.Red(err.Error())
-			return err
+			return
 		}
 	}
-
+	if err != nil {
+		color.Red(fmt.Sprintf("connect HS2 failed ,err is %s", err))
+	}
 	return
 }
 
