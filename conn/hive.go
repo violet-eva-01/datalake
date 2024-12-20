@@ -61,6 +61,7 @@ type HiveConnInformation struct {
 	// KERBEROS NONE NOSASL LDAP CUSTOM DIGEST-MD5
 	Auth          string
 	Configuration *gohive.ConnectConfiguration
+	ConnTimeout   time.Duration
 }
 
 func NewHiveConnInformation(addresses []Address, auth string, service string, fetchSize int64, hiveConfig map[string]string, connTimeout time.Duration) *HiveConnInformation {
@@ -69,12 +70,12 @@ func NewHiveConnInformation(addresses []Address, auth string, service string, fe
 	configuration.Service = service
 	configuration.FetchSize = fetchSize
 	configuration.HiveConfiguration = hiveConfig
-	configuration.ConnectTimeout = connTimeout
 
 	return &HiveConnInformation{
 		Addresses:     addresses,
 		Auth:          auth,
 		Configuration: configuration,
+		ConnTimeout:   connTimeout,
 	}
 }
 
@@ -139,7 +140,7 @@ func (hci *HiveConnInformation) getHiveConn(address Address) (*gohive.Connection
 
 	ch := hci.hiveConn(address)
 
-	timeOut := time.After(hci.Configuration.ConnectTimeout * time.Second)
+	timeOut := time.After(hci.ConnTimeout * time.Second)
 
 	select {
 	case c := <-ch:
