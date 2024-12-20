@@ -110,10 +110,10 @@ func parseCI(wg *sync.WaitGroup, input []CosInformation, ch chan []CosInformatio
 		case len(pathArr) == 5:
 			compile := regexp.MustCompile("(?i)\\.db")
 			isDatabase := compile.Match([]byte(pathArr[4]))
-			isTable := strings.Contains(ci.Type, strings.ToLower("DIR")) && len(pathArr) > 5
+			isTable := strings.Contains(strings.ToLower(ci.Type), "dir") && len(pathArr) > 5
 			if isDatabase && isTable {
 				tmpCIP.DBName = strings.ToLower(compile.ReplaceAllString(pathArr[4], ""))
-				tmpCIP.TBLName = strings.ToLower(compile.ReplaceAllString(pathArr[5], ""))
+				tmpCIP.TBLName = strings.ToLower(pathArr[5])
 				tmpCIP.TableName = tmpCIP.DBName + "." + tmpCIP.TBLName
 			}
 			tmpCIP.ExtendLevel4Name = pathArr[4]
