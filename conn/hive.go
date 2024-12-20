@@ -116,6 +116,46 @@ func (hc *HiveConn) kerberosAuthentication() error {
 	return nil
 }
 
+type conn struct {
+	conn *gohive.Connection
+	err  error
+}
+
+func (hci *HiveConnInformation) hiveConn(address Address) chan conn {
+	ch := make(chan conn)
+	go func() {
+		hiveConn, err := gohive.Connect(address.Host, address.Port, hci.Auth, hci.Configuration)
+		ch <- conn{hiveConn, err}
+	}()
+	return ch
+}
+
+// getHiveConn 获取Hive连接
+func (hci *HiveConnInformation) getHiveConn(address Address) (*gohive.Connection, error) {
+	now := time.Now()
+	defer func() {
+		color.Blue("connected to HS2[%s:%d], elapsed time: %s", address.Host, address.Port, time.Since(now).String())
+	}()
+
+	ch := hci.hiveConn(address)
+
+	timeOut := time.After(hci.Configuration.ConnectTimeout * time.Second)
+
+	select {
+	case c := <-ch:
+		if c.err != nil {
+			color.Red(c.err.Error())
+			return nil, c.err
+		} else {
+			return c.conn, nil
+		}
+	case <-timeOut:
+		err := fmt.Errorf("connect timeout")
+		color.Red(err.Error())
+		return nil, err
+	}
+}
+
 func (hc *HiveConn) GetHiveConn() (err error) {
 
 	if hc.HCI.Auth == "KERBEROS" {
@@ -132,28 +172,19 @@ func (hc *HiveConn) GetHiveConn() (err error) {
 		hiveServer2Hosts = append(hiveServer2Hosts[:i], hiveServer2Hosts[i+1:]...)
 		hc.Conn, err = hc.HCI.getHiveConn(hiveServer2Host)
 		if err != nil {
-			time.Sleep(hc.RetryInterval * time.Second)
-			continue
+			if j < hc.RetryCount-1 {
+				time.Sleep(hc.RetryInterval * time.Second)
+				continue
+			} else {
+				color.Red(fmt.Sprintf("connect HS2 failed ,err is %s", err))
+				return
+			}
 		} else {
 			return
 		}
 	}
-	if err != nil {
-		color.Red(fmt.Sprintf("connect HS2 failed ,err is %s", err))
-	}
+
 	return
-}
-
-// getHiveConn 获取Hive连接
-func (hci *HiveConnInformation) getHiveConn(address Address) (*gohive.Connection, error) {
-	now := time.Now()
-	defer func() {
-		color.Blue("connected to HS2[%s:%d], elapsed time: %s", address.Host, address.Port, time.Since(now).String())
-	}()
-
-	hiveConn, err := gohive.Connect(address.Host, address.Port, hci.Auth, hci.Configuration)
-
-	return hiveConn, err
 }
 
 func (hc *HiveConn) ExecQuery(query string) ([]map[string]interface{}, error) {

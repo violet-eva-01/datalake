@@ -60,6 +60,8 @@ func (c *CosParse) Parse(lengths ...int) {
 
 	if len(lengths) == 0 || (len(lengths) > 0 && lengths[0] == 0) {
 		length = len(c.CI) / 5
+	} else {
+		length = lengths[0]
 	}
 
 	ciMap := c.ciSplit(length)
