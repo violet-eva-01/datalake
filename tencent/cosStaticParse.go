@@ -67,27 +67,26 @@ func (c *CosParse) Parse(times int, lengths ...int) {
 		ciMap = ciSplit(length, c.CI)
 	}
 
-	var (
-		wg sync.WaitGroup
-		ch = make(chan []CosInformationParse, len(ciMap))
-	)
 	for index, _ := range ciMap {
 		information := ciMap[index]
 		var tmpLength int
 		tmpLength = len(information) / times
 		tmpCiMap := ciSplit(tmpLength, information)
+		var (
+			wg sync.WaitGroup
+			ch = make(chan []CosInformationParse, len(ciMap))
+		)
 		for _, ci := range tmpCiMap {
 			wg.Add(1)
 			go parseCI(&wg, ci, ch)
 		}
-	}
-	wg.Wait()
-	close(ch)
+		wg.Wait()
+		close(ch)
 
-	for result := range ch {
-		c.CPI = append(c.CPI, result...)
+		for result := range ch {
+			c.CPI = append(c.CPI, result...)
+		}
 	}
-
 }
 
 func parseCI(wg *sync.WaitGroup, input []CosInformation, ch chan []CosInformationParse) {
