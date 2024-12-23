@@ -293,3 +293,89 @@ func ParseStructGormTags(data any) []map[string]string {
 func ParseStructJsonTags(data any) []map[string]string {
 	return ParseStructTags(data, "json")
 }
+
+func findLongKeyAndLongValue(data []map[string]string) (maxKeyLen, maxValueLen int) {
+
+	for _, value := range data {
+		for k, v := range value {
+			if len(k) > maxKeyLen {
+				maxKeyLen = len(k)
+			}
+			if len(v) > maxValueLen {
+				maxValueLen = len(v)
+			}
+		}
+	}
+
+	return
+}
+
+func KeyValueToSQL(sqlType string, data []map[string]string, input ...[2]string) (string, error) {
+	if len(data) == 0 {
+		return "", fmt.Errorf("data is empty")
+	}
+	var (
+		createSQL []string
+		dbName    string
+		tblName   string
+		startSQL  string
+		endSQL    string
+		fmtT      string
+		typeIndex int
+	)
+	if len(input) > 0 {
+		dbName = input[0][0]
+		tblName = input[0][1]
+	} else {
+		dbName = "xxx"
+		tblName = "xxx"
+	}
+
+	maxKeyLen, maxValueLen := findLongKeyAndLongValue(data)
+
+	switch sqlType {
+	case "create":
+		typeIndex = 1
+		fmtT = fmt.Sprint("    %-", maxKeyLen+10, "s    %-", maxValueLen+10, "s")
+		startSQL = fmt.Sprintf("create table %s.%s (", dbName, tblName)
+		endSQL = ")"
+	case "select":
+		typeIndex = 2
+		fmtT = fmt.Sprint("    %-", maxKeyLen+10, "s")
+		startSQL = "select"
+		endSQL = fmt.Sprintf("from %s.%s", dbName, tblName)
+	default:
+		return "", fmt.Errorf("sql type not support")
+	}
+
+	for index, value := range data {
+		for k, v := range value {
+			k = "`" + k + "`"
+			var tmpCreateSQL string
+			switch index {
+			case len(data) - 1:
+				switch typeIndex {
+				case 1:
+					tmpCreateSQL = fmt.Sprintf(fmtT, k, v)
+				case 2:
+					tmpCreateSQL = fmt.Sprintf(fmtT, k)
+				}
+				createSQL = append(createSQL, tmpCreateSQL)
+				tmpCreateSQL = endSQL
+			case 0:
+				tmpCreateSQL = startSQL
+				createSQL = append(createSQL, tmpCreateSQL)
+				fallthrough
+			default:
+				switch typeIndex {
+				case 1:
+					tmpCreateSQL = fmt.Sprintf(fmtT+",", k, v)
+				case 2:
+					tmpCreateSQL = fmt.Sprintf(fmtT+",", k)
+				}
+			}
+			createSQL = append(createSQL, tmpCreateSQL)
+		}
+	}
+	return strings.Join(createSQL, "\n"), nil
+}
