@@ -226,16 +226,15 @@ func GetResponse(request *http.Request, proxy string) (resp *http.Response, err 
 	return
 }
 
-func PrintStruct(data ...any) {
-	for index, v := range data {
-		typeOf := reflect.TypeOf(v)
-		valueOf := reflect.ValueOf(v)
-		fmt.Printf("start print struct [%s] index [%d]", typeOf.Name(), index)
-		for i := 0; i < typeOf.NumField(); i++ {
-			fmt.Printf("type name: %+40v\ttype value: %-50v\n", typeOf.Field(i).Name, valueOf.Field(i).Interface())
-		}
-		fmt.Printf("print struct [%s] index [%d] end", typeOf.Name(), index)
+func PrintStruct(data any) {
+	typeOf := reflect.TypeOf(data)
+	valueOf := reflect.ValueOf(data)
+	color.Blue("start print struct [%s]\n", typeOf.Name())
+	for i := 0; i < typeOf.NumField(); i++ {
+		color.Green("type name: %+40v\ttype value: %-50v\n", typeOf.Field(i).Name, valueOf.Field(i).Interface())
 	}
+	color.Blue("print struct [%s] end\n", typeOf.Name())
+
 }
 
 // ParseStructTags
@@ -310,7 +309,7 @@ func findLongKeyAndLongValue(data []map[string]string) (maxKeyLen, maxValueLen i
 	return
 }
 
-func KeyValueToSQL(sqlType string, data []map[string]string, input ...[2]string) (string, error) {
+func FormatKeyValueToSQL(sqlType string, data []map[string]string, input ...[2]string) (string, error) {
 	if len(data) == 0 {
 		return "", fmt.Errorf("data is empty")
 	}
@@ -327,21 +326,20 @@ func KeyValueToSQL(sqlType string, data []map[string]string, input ...[2]string)
 		dbName = input[0][0]
 		tblName = input[0][1]
 	} else {
-		dbName = "xxx"
-		tblName = "xxx"
+		dbName = "default_db"
+		tblName = "default_tbl"
 	}
-
-	maxKeyLen, maxValueLen := findLongKeyAndLongValue(data)
 
 	switch sqlType {
 	case "create":
 		typeIndex = 1
+		maxKeyLen, maxValueLen := findLongKeyAndLongValue(data)
 		fmtT = fmt.Sprint("    %-", maxKeyLen+10, "s    %-", maxValueLen+10, "s")
 		startSQL = fmt.Sprintf("create table %s.%s (", dbName, tblName)
 		endSQL = ")"
 	case "select":
 		typeIndex = 2
-		fmtT = fmt.Sprint("    %-", maxKeyLen+10, "s")
+		fmtT = "%s"
 		startSQL = "select"
 		endSQL = fmt.Sprintf("from %s.%s", dbName, tblName)
 	default:
