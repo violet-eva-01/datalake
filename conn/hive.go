@@ -86,16 +86,16 @@ type HiveConn struct {
 	Conn          *gohive.Connection
 	RetryCount    int
 	RetryInterval time.Duration
-	QueryTimeOut  int
+	QueryTimeout  int
 }
 
-func NewHiveConn(retryCount int, retryInterval time.Duration, timeOut int, information *HiveConnInformation, auth *KrbAuth) *HiveConn {
+func NewHiveConn(retryCount int, retryInterval time.Duration, queryTimeout int, information *HiveConnInformation, auth *KrbAuth) *HiveConn {
 	return &HiveConn{
 		KA:            auth,
 		HCI:           information,
 		RetryCount:    retryCount,
 		RetryInterval: retryInterval,
-		QueryTimeOut:  timeOut,
+		QueryTimeout:  queryTimeout,
 	}
 }
 
@@ -192,7 +192,7 @@ func (hc *HiveConn) GetHiveConn() (err error) {
 func (hc *HiveConn) ExecQuery(query string) ([]map[string]interface{}, error) {
 	cur := hc.Conn.Cursor()
 	defer cur.Close()
-	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(hc.QueryTimeOut)*time.Second)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(hc.QueryTimeout)*time.Second)
 	defer cancelFunc()
 	cur.Exec(ctx, query)
 	if cur.Err != nil {
@@ -222,7 +222,7 @@ func (hc *HiveConn) ExecQueryToStruct(query string, data any) error {
 	}
 	cur := hc.Conn.Cursor()
 	defer cur.Close()
-	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(hc.QueryTimeOut)*time.Second)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(hc.QueryTimeout)*time.Second)
 	defer cancelFunc()
 	cur.Exec(ctx, query)
 	if cur.Err != nil {
@@ -253,7 +253,7 @@ func (hc *HiveConn) ExecQueryToStruct(query string, data any) error {
 func (hc *HiveConn) ExecQueryNoResult(query string) error {
 	cur := hc.Conn.Cursor()
 	defer cur.Close()
-	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(hc.QueryTimeOut)*time.Second)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(hc.QueryTimeout)*time.Second)
 	defer cancelFunc()
 	cur.Exec(ctx, query)
 	return cur.Err

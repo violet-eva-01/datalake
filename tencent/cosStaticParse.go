@@ -25,14 +25,14 @@ func NewCosParse(cis ...CosInformation) *CosParse {
 
 }
 
-func (c *CosParse) ciSplit(length int) map[int][]CosInformation {
+func ciSplit(length int, ciArr []CosInformation) map[int][]CosInformation {
 
-	times := len(c.CI) / length
+	times := len(ciArr) / length
 	output := make(map[int][]CosInformation, times+1)
-	residual := len(c.CI) % length
+	residual := len(ciArr) % length
 
 	if times == 0 || (times == 1 && residual == 0) {
-		output[0] = c.CI
+		output[0] = ciArr
 	} else {
 		if residual == 0 {
 			times -= 1
@@ -41,7 +41,7 @@ func (c *CosParse) ciSplit(length int) map[int][]CosInformation {
 		starLen := 0
 		endLen := length
 		for index := 0; index <= times; index++ {
-			output[index] = c.CI[starLen:endLen]
+			output[index] = ciArr[starLen:endLen]
 			starLen += length
 			if residual != 0 && index == times-1 {
 				endLen += residual
@@ -54,27 +54,33 @@ func (c *CosParse) ciSplit(length int) map[int][]CosInformation {
 	return output
 }
 
-func (c *CosParse) Parse(lengths ...int) {
+func (c *CosParse) Parse(times int, lengths ...int) {
 
-	var length int
-
+	var (
+		length int
+	)
+	ciMap := map[int][]CosInformation{}
 	if len(lengths) == 0 || (len(lengths) > 0 && lengths[0] == 0) {
-		length = len(c.CI) / 5
+		ciMap[0] = c.CI
 	} else {
 		length = lengths[0]
+		ciMap = ciSplit(length, c.CI)
 	}
 
-	ciMap := c.ciSplit(length)
 	var (
 		wg sync.WaitGroup
 		ch = make(chan []CosInformationParse, len(ciMap))
 	)
-
-	for _, ci := range ciMap {
-		wg.Add(1)
-		go parseCI(&wg, ci, ch)
+	for index, _ := range ciMap {
+		information := ciMap[index]
+		var tmpLength int
+		tmpLength = len(information) / times
+		tmpCiMap := ciSplit(tmpLength, information)
+		for _, ci := range tmpCiMap {
+			wg.Add(1)
+			go parseCI(&wg, ci, ch)
+		}
 	}
-
 	wg.Wait()
 	close(ch)
 
