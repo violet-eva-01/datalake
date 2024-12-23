@@ -3,15 +3,17 @@ package tencent
 
 import (
 	"fmt"
-	"regexp"
+	"reflect"
 	"testing"
 )
 
+type a struct {
+	A int
+	B int
+}
+
 func TestName(t *testing.T) {
-	a := "ods_sox.db"
-	compile := regexp.MustCompile("(?i)\\.db")
-	matchString := compile.MatchString(a)
-	fmt.Println(matchString)
-	allString := compile.ReplaceAllString(a, "")
-	fmt.Println(allString)
+	ac := a{1, 2}
+	of := reflect.TypeOf(ac)
+	fmt.Println(of.Name())
 }

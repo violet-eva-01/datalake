@@ -2,11 +2,65 @@
 package util
 
 import (
+	"fmt"
+	"github.com/fatih/color"
+	"math/rand"
 	"net/http"
 	"net/url"
+	"reflect"
 	"sort"
 	"strings"
+	"time"
 )
+
+func RandomPassword(limits ...[4]int) (str string, err error) {
+
+	var limit [4]int
+	if len(limits) <= 0 {
+		limit = [4]int{1, 1, 1, 1}
+	} else {
+		limit = limits[0]
+	}
+	rand.NewSource(time.Now().UnixNano())
+	digits := []byte("0123456789")
+	lowers := []byte("abcdefghijklmnopqrstuvwxyz")
+	uppers := []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	chars := []byte(",.<>!@#$%^&*()_=-[]{}|;:/?")
+	byteS := []byte("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	passwordLength := 18 + rand.Intn(6)
+	color.Green("密码长度为: %d", passwordLength)
+	leftPasswordLength := passwordLength - limit[0] - limit[1] - limit[2] - limit[3]
+	if leftPasswordLength < 0 {
+		err = fmt.Errorf("密码限制为:[%d]位数字,[%d]位小写字母,[%d]位大写字母.已超过密码的长度[%d],请重新指定密码限制", limit[0], limit[1], limit[2], passwordLength)
+		return
+	}
+	var result []byte
+	color.Green("至少取[%d]位数字", limit[0])
+	for i := 0; i < limit[0]; i++ {
+		result = append(result, byteS[rand.Intn(len(digits))])
+	}
+	color.Green("至少取[%d]位小写字母", limit[1])
+	for i := 0; i < limit[1]; i++ {
+		result = append(result, byteS[rand.Intn(len(lowers))])
+	}
+	color.Green("至少取[%d]位大写字母", limit[2])
+	for i := 0; i < limit[2]; i++ {
+		result = append(result, byteS[rand.Intn(len(uppers))])
+	}
+	color.Green("至少取[%d]位特殊字符", limit[3])
+	for i := 0; i < limit[2]; i++ {
+		result = append(result, byteS[rand.Intn(len(chars))])
+	}
+	rand.NewSource(time.Now().UnixNano() + int64(rand.Intn(100)))
+	for i := 0; i < leftPasswordLength; i++ {
+		result = append(result, byteS[rand.Intn(len(byteS))])
+	}
+	rand.Shuffle(len(result), func(i, j int) {
+		result[i], result[j] = result[j], result[i]
+	})
+	str = string(result)
+	return
+}
 
 func StringSliceIntersection(slice1, slice2 []string) []string {
 
@@ -170,4 +224,72 @@ func GetResponse(request *http.Request, proxy string) (resp *http.Response, err 
 	}
 
 	return
+}
+
+func PrintStruct(data ...any) {
+	for index, v := range data {
+		typeOf := reflect.TypeOf(v)
+		valueOf := reflect.ValueOf(v)
+		fmt.Printf("start print struct [%s] index [%d]", typeOf.Name(), index)
+		for i := 0; i < typeOf.NumField(); i++ {
+			fmt.Printf("type name: %+40v\ttype value: %-50v\n", typeOf.Field(i).Name, valueOf.Field(i).Interface())
+		}
+		fmt.Printf("print struct [%s] index [%d] end", typeOf.Name(), index)
+	}
+}
+
+// ParseStructTags
+// @Description:
+// @param data
+// @return []string
+func ParseStructTags(data any, tagName string, splitKey ...string) []map[string]string {
+
+	valueOf := reflect.ValueOf(data)
+	if valueOf.Kind() == reflect.Ptr {
+		valueOf = valueOf.Elem()
+	}
+	if valueOf.Kind() != reflect.Struct {
+		return nil
+	}
+
+	var output []map[string]string
+	if len(splitKey) > 0 {
+		for i := 0; i < valueOf.NumField(); i++ {
+			field := valueOf.Type().Field(i)
+			tag := field.Tag
+			tagValue := tag.Get(tagName)
+			fieldType := field.Type.String()
+			if tagValue != "" {
+				splitValue := strings.Split(tagValue, ",")
+				for _, Value := range splitValue {
+					if strings.HasPrefix(Value, splitKey[0]) {
+						tmpColumn := map[string]string{}
+						columnName := strings.TrimPrefix(Value, splitKey[0])
+						tmpColumn[columnName] = fieldType
+						output = append(output, tmpColumn)
+					}
+				}
+			}
+		}
+	} else {
+		for i := 0; i < valueOf.NumField(); i++ {
+			field := valueOf.Type().Field(i)
+			tag := field.Tag
+			tagValue := tag.Get(tagName)
+			fieldType := field.Type.String()
+			tmpColumn := map[string]string{}
+			tmpColumn[tagValue] = fieldType
+			output = append(output, tmpColumn)
+		}
+	}
+
+	return output
+}
+
+func ParseStructGormTags(data any) []map[string]string {
+	return ParseStructTags(data, "gorm", "column:")
+}
+
+func ParseStructJsonTags(data any) []map[string]string {
+	return ParseStructTags(data, "json")
 }

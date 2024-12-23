@@ -10,6 +10,7 @@ import (
 	"golang.org/x/exp/rand"
 	"os"
 	"os/exec"
+	"reflect"
 	"time"
 )
 
@@ -215,6 +216,10 @@ func (hc *HiveConn) ExecQuery(query string) ([]map[string]interface{}, error) {
 // @return []map[string]interface{}
 // @return error
 func (hc *HiveConn) ExecQueryToStruct(query string, data any) error {
+	valueOf := reflect.ValueOf(data)
+	if valueOf.Kind() != reflect.Ptr {
+		return fmt.Errorf("data is not a pointer")
+	}
 	cur := hc.Conn.Cursor()
 	defer cur.Close()
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(hc.QueryTimeOut)*time.Second)

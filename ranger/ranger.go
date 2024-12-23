@@ -9,6 +9,7 @@ import (
 	"github.com/violet-eva-01/datalake/util"
 	"io"
 	"net/http"
+	"reflect"
 	"strings"
 )
 
@@ -103,6 +104,11 @@ func (r *Ranger) Request(method string, Api string, body []byte) (*http.Response
 // @param data 需要为[struct | struct slice]指针
 // @return error
 func (r *Ranger) RequestToStruct(method string, Api string, body []byte, data any) error {
+
+	valueOf := reflect.ValueOf(data)
+	if valueOf.Kind() != reflect.Ptr {
+		return fmt.Errorf("data is not a pointer")
+	}
 
 	resp, respErr := r.Request(method, Api, body)
 	if respErr != nil {

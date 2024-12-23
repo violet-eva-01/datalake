@@ -17,6 +17,7 @@ type CosInformation struct {
 	User     string `gorm:"column:user" json:"user"`
 	Group    string `gorm:"column:group" json:"group"`
 	FileType string `gorm:"column:file_type" json:"file_type"`
+	DT       string `gorm:"column:dt" json:"dt"`
 }
 
 type CosInformationParse struct {
@@ -40,4 +41,5 @@ type CosInformationParse struct {
 	Acl              string    `gorm:"column:acl" json:"acl"`
 	User             string    `gorm:"column:user" json:"user"`
 	Group            string    `gorm:"column:group" json:"group"`
+	DT               string    `gorm:"column:dt" json:"dt"`
 }
