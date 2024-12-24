@@ -43,3 +43,61 @@ type CosInformationParse struct {
 	Group            string    `gorm:"column:group" json:"group"`
 	DT               string    `gorm:"column:dt" json:"dt"`
 }
+
+func CiSplit(length int, ciArr []CosInformation) map[int][]CosInformation {
+
+	times := len(ciArr) / length
+	output := make(map[int][]CosInformation, times+1)
+	residual := len(ciArr) % length
+
+	if times == 0 || (times == 1 && residual == 0) {
+		output[0] = ciArr
+	} else {
+		if residual == 0 {
+			times -= 1
+		}
+
+		starLen := 0
+		endLen := length
+		for index := 0; index <= times; index++ {
+			output[index] = ciArr[starLen:endLen]
+			starLen += length
+			if residual != 0 && index == times-1 {
+				endLen += residual
+			} else {
+				endLen += length
+			}
+		}
+	}
+
+	return output
+}
+
+func CipSplit(length int, ciArr []CosInformationParse) map[int][]CosInformationParse {
+
+	times := len(ciArr) / length
+	output := make(map[int][]CosInformationParse, times+1)
+	residual := len(ciArr) % length
+
+	if times == 0 || (times == 1 && residual == 0) {
+		output[0] = ciArr
+	} else {
+		if residual == 0 {
+			times -= 1
+		}
+
+		starLen := 0
+		endLen := length
+		for index := 0; index <= times; index++ {
+			output[index] = ciArr[starLen:endLen]
+			starLen += length
+			if residual != 0 && index == times-1 {
+				endLen += residual
+			} else {
+				endLen += length
+			}
+		}
+	}
+
+	return output
+}
