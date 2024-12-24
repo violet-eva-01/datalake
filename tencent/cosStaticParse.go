@@ -74,7 +74,7 @@ func (c *CosParse) Parse(times int, lengths ...int) {
 		tmpCiMap := ciSplit(tmpLength, information)
 		var (
 			wg sync.WaitGroup
-			ch = make(chan []CosInformationParse, len(ciMap))
+			ch = make(chan []CosInformationParse, len(tmpCiMap))
 		)
 		for _, ci := range tmpCiMap {
 			wg.Add(1)
