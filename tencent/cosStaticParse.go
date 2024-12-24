@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func Parse(input []CosInformation, lengths ...int) []CosInformationParse {
+func CosMetaParse(input []CosInformation, lengths ...int) []CosInformationParse {
 
 	var (
 		length int
@@ -31,7 +31,7 @@ func Parse(input []CosInformation, lengths ...int) []CosInformationParse {
 
 	for _, ci := range ciMap {
 		wg.Add(1)
-		go parseCI(&wg, ci, ch)
+		go cosMetaParseCI(&wg, ci, ch)
 	}
 	wg.Wait()
 
@@ -44,7 +44,7 @@ func Parse(input []CosInformation, lengths ...int) []CosInformationParse {
 	return output
 }
 
-func parseCI(wg *sync.WaitGroup, input []CosInformation, ch chan []CosInformationParse) {
+func cosMetaParseCI(wg *sync.WaitGroup, input []CosInformation, ch chan []CosInformationParse) {
 	var result []CosInformationParse
 	defer wg.Done()
 	defer func() {
