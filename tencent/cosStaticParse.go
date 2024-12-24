@@ -104,32 +104,58 @@ func parseCI(wg *sync.WaitGroup, input []CosInformation, ch chan []CosInformatio
 		} else {
 			tmpCIP.PathLevel = len(pathArr) - 1
 		}
+		isDir := strings.Contains(strings.ToLower(ci.Type), "dir")
+		continueSign := false
 		switch {
 		case len(pathArr) >= 7:
-			tmpCIP.ExtendLevel6Name = pathArr[6]
+			if isDir {
+				tmpCIP.ExtendLevel6Name = pathArr[6]
+			} else {
+				continueSign = true
+			}
 			fallthrough
 		case len(pathArr) == 6:
-			tmpCIP.ExtendLevel5Name = pathArr[5]
+			if isDir || (!isDir && continueSign) {
+				tmpCIP.ExtendLevel5Name = pathArr[5]
+			} else {
+				continueSign = true
+			}
 			fallthrough
 		case len(pathArr) == 5:
 			compile := regexp.MustCompile("(?i)\\.db")
 			isDatabase := compile.Match([]byte(pathArr[4]))
-			isTable := strings.Contains(strings.ToLower(ci.Type), "dir") && len(pathArr) > 5
+			isTable := isDir && len(pathArr) > 5
 			if isDatabase && isTable {
 				tmpCIP.DBName = strings.ToLower(compile.ReplaceAllString(pathArr[4], ""))
 				tmpCIP.TBLName = strings.ToLower(pathArr[5])
 				tmpCIP.TableName = tmpCIP.DBName + "." + tmpCIP.TBLName
 			}
-			tmpCIP.ExtendLevel4Name = pathArr[4]
+			if isDir || (!isDir && continueSign) {
+				tmpCIP.ExtendLevel4Name = pathArr[4]
+			} else {
+				continueSign = true
+			}
 			fallthrough
 		case len(pathArr) == 4:
-			tmpCIP.ExtendLevel3Name = pathArr[3]
+			if isDir || (!isDir && continueSign) {
+				tmpCIP.ExtendLevel3Name = pathArr[3]
+			} else {
+				continueSign = true
+			}
 			fallthrough
 		case len(pathArr) == 3:
-			tmpCIP.ExtendLevel2Name = pathArr[2]
+			if isDir || (!isDir && continueSign) {
+				tmpCIP.ExtendLevel2Name = pathArr[2]
+			} else {
+				continueSign = true
+			}
 			fallthrough
 		case len(pathArr) == 2:
-			tmpCIP.ExtendLevel1Name = pathArr[1]
+			if isDir || (!isDir && continueSign) {
+				tmpCIP.ExtendLevel1Name = pathArr[1]
+			} else {
+				continueSign = true
+			}
 		default:
 			color.Red("abnormal data: %+v", ci)
 			continue
