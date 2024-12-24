@@ -143,6 +143,7 @@ func parseCI(wg *sync.WaitGroup, input []CosInformation, ch chan []CosInformatio
 		tmpCIP.Acl = ci.Acl
 		tmpCIP.User = ci.User
 		tmpCIP.Group = ci.Group
+		tmpCIP.DT = ci.DT
 		result = append(result, tmpCIP)
 	}
 }
