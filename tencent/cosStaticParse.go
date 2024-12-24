@@ -9,54 +9,39 @@ import (
 	"time"
 )
 
-type CosParse struct {
-	WarehousePath string
-	CI            []CosInformation
-	CPI           []CosInformationParse
-}
-
-func NewCosParse(cis ...CosInformation) *CosParse {
-
-	warehousePath := "/user/hive/warehouse"
-	return &CosParse{
-		WarehousePath: warehousePath,
-		CI:            cis,
-	}
-
-}
-
-func (c *CosParse) Parse(times int, lengths ...int) {
+func Parse(input []CosInformation, lengths ...int) []CosInformationParse {
 
 	var (
 		length int
+		output []CosInformationParse
 	)
-	ciMap := map[int][]CosInformation{}
+
 	if len(lengths) == 0 || (len(lengths) > 0 && lengths[0] == 0) {
-		ciMap[0] = c.CI
+		length = len(input)/5 + 1
 	} else {
 		length = lengths[0]
-		ciMap = CiSplit(length, c.CI)
 	}
 
-	for i := 0; i < len(ciMap); i++ {
-		var tmpLength int
-		tmpLength = len(ciMap[i]) / times
-		tmpCiMap := CiSplit(tmpLength, ciMap[i])
-		var (
-			wg sync.WaitGroup
-			ch = make(chan []CosInformationParse, len(tmpCiMap))
-		)
-		for _, ci := range tmpCiMap {
-			wg.Add(1)
-			go parseCI(&wg, ci, ch)
-		}
-		wg.Wait()
-		close(ch)
+	ciMap := CiSplit(length, input)
 
-		for result := range ch {
-			c.CPI = append(c.CPI, result...)
-		}
+	var (
+		wg sync.WaitGroup
+		ch = make(chan []CosInformationParse, len(ciMap))
+	)
+
+	for _, ci := range ciMap {
+		wg.Add(1)
+		go parseCI(&wg, ci, ch)
 	}
+	wg.Wait()
+
+	close(ch)
+
+	for result := range ch {
+		output = append(output, result...)
+	}
+
+	return output
 }
 
 func parseCI(wg *sync.WaitGroup, input []CosInformation, ch chan []CosInformationParse) {
