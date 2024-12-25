@@ -189,6 +189,40 @@ func (hc *HiveConn) GetHiveConn() (err error) {
 	return
 }
 
+func (hc *HiveConn) ExecQueryBatchSize(query string, batchSize int, function ...func(input []map[string]interface{})) (err error) {
+
+	cur := hc.Conn.Cursor()
+	defer cur.Close()
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(hc.QueryTimeout)*time.Second)
+	defer cancelFunc()
+	cur.Exec(ctx, query)
+	if cur.Err != nil {
+		return cur.Err
+	}
+	var list []map[string]interface{}
+	rowCount := 0
+	for cur.HasMore(ctx) {
+		rowsM := cur.RowMap(ctx)
+		if cur.Err != nil {
+			return cur.Err
+		}
+		list = append(list, rowsM)
+		rowCount++
+		if rowCount%batchSize == 0 {
+			for _, fun := range function {
+				fun(list)
+			}
+			list = list[:0]
+		}
+	}
+	if len(list) > 0 {
+		for _, fun := range function {
+			fun(list)
+		}
+	}
+	return
+}
+
 func (hc *HiveConn) ExecQuery(query string) ([]map[string]interface{}, error) {
 	cur := hc.Conn.Cursor()
 	defer cur.Close()
