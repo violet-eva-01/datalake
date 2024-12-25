@@ -80,7 +80,7 @@ func cosMetaParseCI(wg *sync.WaitGroup, input []CosInformation, ch chan []CosInf
 		case len(pathArr) == 5:
 			compile := regexp.MustCompile("(?i)\\.db")
 			isDatabase := compile.Match([]byte(pathArr[4]))
-			isTable := isDir && len(pathArr) > 5
+			isTable := len(pathArr) > 5
 			if isDatabase && isTable {
 				tmpCIP.DBName = strings.ToLower(compile.ReplaceAllString(pathArr[4], ""))
 				tmpCIP.TBLName = strings.ToLower(pathArr[5])
