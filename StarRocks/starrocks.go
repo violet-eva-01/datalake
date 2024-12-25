@@ -56,8 +56,8 @@ func NewStarRocksAll(dbName, user, passwd, host string, port, feHttpPort, retryC
 	}, err
 }
 
-func NewStarRocks(dbName, user, passwd, host string, opts ...string) (*StarRocks, error) {
-	port, feHttpPort, retryCount, retryInterval, queryTimeout, maxIdleConn, maxOpenConn, maxLifetime := 9030, 8030, 3, 10, 1800, 2, 2, 1800
+func NewStarRocks(dbName, user, passwd, host string, timeout int, opts ...string) (*StarRocks, error) {
+	port, feHttpPort, retryCount, retryInterval, queryTimeout, maxIdleConn, maxOpenConn, maxLifetime := 9030, 8030, 3, 10, timeout, 2, 2, timeout
 	sqlDB, err := conn.InitSQLDB("mysql", dbName, user, passwd, host, port, retryCount, retryInterval, queryTimeout, maxIdleConn, maxOpenConn, maxLifetime, opts...)
 	if err != nil {
 		return nil, err

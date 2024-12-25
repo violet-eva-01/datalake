@@ -189,7 +189,7 @@ func (hc *HiveConn) GetHiveConn() (err error) {
 	return
 }
 
-func (hc *HiveConn) ExecQueryBatchSize(query string, batchSize int, function ...func(input []map[string]interface{})) (err error) {
+func (hc *HiveConn) ExecQueryBatchSize(query string, batchSize int, function ...func(input []map[string]interface{}) error) (err error) {
 
 	cur := hc.Conn.Cursor()
 	defer cur.Close()
@@ -210,14 +210,20 @@ func (hc *HiveConn) ExecQueryBatchSize(query string, batchSize int, function ...
 		rowCount++
 		if rowCount%batchSize == 0 {
 			for _, fun := range function {
-				fun(list)
+				err = fun(list)
+				if err != nil {
+					return err
+				}
 			}
 			list = list[:0]
 		}
 	}
 	if len(list) > 0 {
 		for _, fun := range function {
-			fun(list)
+			err = fun(list)
+			if err != nil {
+				return
+			}
 		}
 	}
 	return

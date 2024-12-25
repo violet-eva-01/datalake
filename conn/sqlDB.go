@@ -148,6 +148,68 @@ func (s *SQLDB) ExecQuery(query string, args ...interface{}) (list []map[string]
 	return list, nil
 }
 
+func (s *SQLDB) ExecQueryBatchSize(query string, batchSize int, function ...func(input []map[string]interface{}) error) (err error) {
+	defer func() {
+		if result := recover(); result != nil {
+			err = fmt.Errorf("panic: %v", result)
+		}
+	}()
+
+	var (
+		rows    *sql.Rows
+		columns []string
+	)
+
+	timeout, cancelFunc := context.WithTimeout(context.Background(), time.Duration(s.QueryTimeOut)*time.Second)
+	defer cancelFunc()
+	rows, err = s.SQLDB.QueryContext(timeout, query)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	columns, err = rows.Columns()
+	if err != nil {
+		return
+	}
+	var list []map[string]interface{}
+	rawBytes := make([]sql.RawBytes, len(columns))
+	scanArgs := make([]interface{}, len(rawBytes))
+	for i := range columns {
+		scanArgs[i] = &rawBytes[i]
+	}
+	rowCount := 0
+	for rows.Next() {
+		err = rows.Scan(scanArgs...)
+		if err != nil {
+			return
+		}
+		record := make(map[string]interface{})
+		for index, value := range rawBytes {
+			record[columns[index]] = string(value)
+		}
+		list = append(list, record)
+		rowCount++
+		if rowCount%batchSize == 0 {
+			for _, fun := range function {
+				err = fun(list)
+				if err != nil {
+					return
+				}
+			}
+			list = list[:0]
+		}
+	}
+	if len(list) > 0 {
+		for _, fun := range function {
+			err = fun(list)
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
 func (s *SQLDB) ExecQueryToString(query string, args ...interface{}) (list []map[string]string, err error) {
 	defer func() {
 		if result := recover(); result != nil {
