@@ -8,47 +8,9 @@ import (
 	"github.com/beltran/gohive"
 	"github.com/fatih/color"
 	"golang.org/x/exp/rand"
-	"os"
-	"os/exec"
 	"reflect"
 	"time"
 )
-
-const (
-	DefaultKrbConfPath  = "/etc/krb5.conf"
-	DefaultKinitProgram = "/usr/bin/kinit"
-)
-
-type KrbAuth struct {
-	KrbConfPath      string
-	KinitProgramPath string
-	KeyTabFilePath   string
-	Principal        string
-}
-
-func NewKrbAuth(krbConfPath, kinitProgramPath, keyTabFilePath, principal string) *KrbAuth {
-	if krbConfPath == "" {
-		krbConfPath = DefaultKrbConfPath
-	}
-	if kinitProgramPath == "" {
-		kinitProgramPath = DefaultKinitProgram
-	}
-	return &KrbAuth{
-		KrbConfPath:      krbConfPath,
-		KinitProgramPath: kinitProgramPath,
-		KeyTabFilePath:   keyTabFilePath,
-		Principal:        principal,
-	}
-}
-
-func (ka *KrbAuth) kinit() error {
-	err := os.Setenv("KRB5_CONFIG", ka.KrbConfPath)
-	if err != nil {
-		return err
-	}
-	cmd := exec.Command(ka.KinitProgramPath, "-kt", ka.KeyTabFilePath, ka.Principal)
-	return cmd.Run()
-}
 
 type Address struct {
 	Host string
@@ -101,7 +63,7 @@ func NewHiveConn(retryCount int, retryInterval time.Duration, queryTimeout int, 
 
 func (hc *HiveConn) kerberosAuthentication() error {
 	for i := 0; i < hc.RetryCount; i++ {
-		err := hc.KA.kinit()
+		err := hc.KA.Kinit()
 		if err != nil {
 			time.Sleep(hc.RetryInterval * time.Second)
 			if i == hc.RetryCount-1 {

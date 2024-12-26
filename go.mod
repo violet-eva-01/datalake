@@ -12,6 +12,7 @@ require (
 )
 
 require (
+	github.com/apache/spark-connect-go/v35 v35.0.0-20241107203614-5880ead055a6 // indirect
 	github.com/apache/thrift v0.18.1 // indirect
 	github.com/beltran/gosasl v0.0.0-20200715011608-d5475aebb293 // indirect
 	github.com/beltran/gssapi v0.0.0-20200324152954-d86554db4bab // indirect
@@ -28,6 +29,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	golang.org/x/crypto v0.17.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.25.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/text v0.19.0 // indirect
 )
