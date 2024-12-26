@@ -3,6 +3,7 @@ package StarRocks
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/violet-eva-01/datalake/conn"
@@ -79,9 +80,9 @@ func NewStarRocks(dbName, user, passwd, host string, timeout int, opts ...string
 	}, err
 }
 
-func (s *StarRocks) JsonStreamingLoadToStarRocks(dbName, tblName string, body []byte) (result string, err error) {
+func (s *StarRocks) JsonStreamingLoadToStarRocks(dbName, tblName string, body []byte) (err error) {
 	for i := 0; i < s.retryCount; i++ {
-		result, err = s.jsonStreamingLoadToStarRocks(dbName, tblName, body)
+		err = s.jsonStreamingLoadToStarRocks(dbName, tblName, body)
 		if err != nil {
 			if i != s.retryCount-1 {
 				time.Sleep(s.retryInterval)
@@ -96,7 +97,25 @@ func (s *StarRocks) JsonStreamingLoadToStarRocks(dbName, tblName string, body []
 	return
 }
 
-func (s *StarRocks) jsonStreamingLoadToStarRocks(dbName, tblName string, body []byte) (result string, err error) {
+type streamLoadResult struct {
+	TxnId                  int    `json:"TxnId"`
+	Label                  string `json:"Label"`
+	Status                 string `json:"Status"`
+	Message                string `json:"Message"`
+	NumberTotalRows        int    `json:"NumberTotalRows"`
+	NumberLoadedRows       int    `json:"NumberLoadedRows"`
+	NumberFilteredRows     int    `json:"NumberFilteredRows"`
+	NumberUnselectedRows   int    `json:"NumberUnselectedRows"`
+	LoadBytes              int64  `json:"LoadBytes"`
+	LoadTimeMs             int    `json:"LoadTimeMs"`
+	BeginTxnTimeMs         int    `json:"BeginTxnTimeMs"`
+	StreamLoadPlanTimeMs   int    `json:"StreamLoadPlanTimeMs"`
+	ReadDataTimeMs         int    `json:"ReadDataTimeMs"`
+	WriteDataTimeMs        int    `json:"WriteDataTimeMs"`
+	CommitAndPublishTimeMs int    `json:"CommitAndPublishTimeMs"`
+}
+
+func (s *StarRocks) jsonStreamingLoadToStarRocks(dbName, tblName string, body []byte) (err error) {
 	var (
 		dr       []descResult
 		columns  []string
@@ -163,6 +182,13 @@ func (s *StarRocks) jsonStreamingLoadToStarRocks(dbName, tblName string, body []
 	if err != nil {
 		return
 	}
-	result = string(respBody)
+	var slr streamLoadResult
+	err = json.Unmarshal(respBody, &slr)
+	if err != nil {
+		return
+	}
+	if strings.ToLower(slr.Status) != "success" {
+		err = fmt.Errorf("%s", slr.Message)
+	}
 	return
 }
