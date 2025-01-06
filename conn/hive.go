@@ -260,3 +260,8 @@ func (hc *HiveConn) ExecQueryNoResult(query string) error {
 	cur.Exec(ctx, query)
 	return cur.Err
 }
+
+func (hc *HiveConn) Close() (err error) {
+	err = hc.Conn.Close()
+	return
+}

@@ -192,3 +192,8 @@ func (s *StarRocks) jsonStreamingLoadToStarRocks(dbName, tblName string, body []
 	}
 	return
 }
+
+func (s *StarRocks) Close() error {
+	err := s.StarRocksSQLDB.SQLDB.Close()
+	return err
+}

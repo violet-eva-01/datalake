@@ -148,7 +148,7 @@ func (s *SQLDB) ExecQuery(query string, args ...interface{}) (list []map[string]
 	return list, nil
 }
 
-func (s *SQLDB) ExecQueryBatchSize(query string, batchSize int, function ...func(input []map[string]interface{}) error) (err error) {
+func (s *SQLDB) ExecQueryBatchProcessing(query string, batchSize int, function ...func(input []map[string]interface{}) error) (err error) {
 	defer func() {
 		if result := recover(); result != nil {
 			err = fmt.Errorf("panic: %v", result)
@@ -324,5 +324,10 @@ func (s *SQLDB) ExecQueryNoResult(query string, args ...interface{}) (err error)
 	if err != nil {
 		return
 	}
+	return
+}
+
+func (s *SQLDB) Close() (err error) {
+	err = s.SQLDB.Close()
 	return
 }

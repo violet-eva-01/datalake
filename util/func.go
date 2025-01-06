@@ -237,11 +237,14 @@ func PrintStruct(data any) {
 
 }
 
-// ParseStructTags
-// @Description:
+// ConvStructTags
+// @Description: get tag name & tag elem type or get elem name & tag name
 // @param data
-// @return []string
-func ParseStructTags(data any, tagName string, splitKey ...string) []map[string]string {
+// @param tagName
+// @param isGetType  true , get tag name & tag elem type . false , get elem name & tag name.
+// @param splitKey
+// @return map[string]string
+func ConvStructTags(data any, tagName string, isGetType bool, splitKey ...string) map[string]string {
 
 	valueOf := reflect.ValueOf(data)
 	if valueOf.Kind() == reflect.Ptr {
@@ -251,21 +254,28 @@ func ParseStructTags(data any, tagName string, splitKey ...string) []map[string]
 		return nil
 	}
 
-	var output []map[string]string
+	output := make(map[string]string, valueOf.NumField())
 	if len(splitKey) > 0 {
 		for i := 0; i < valueOf.NumField(); i++ {
 			field := valueOf.Type().Field(i)
 			tag := field.Tag
 			tagValue := tag.Get(tagName)
-			fieldType := field.Type.String()
+			var fieldType string
+			if isGetType {
+				fieldType = field.Type.String()
+			} else {
+				fieldType = field.Name
+			}
 			if tagValue != "" {
 				splitValue := strings.Split(tagValue, ",")
 				for _, Value := range splitValue {
 					if strings.HasPrefix(Value, splitKey[0]) {
-						tmpColumn := map[string]string{}
 						columnName := strings.TrimPrefix(Value, splitKey[0])
-						tmpColumn[columnName] = fieldType
-						output = append(output, tmpColumn)
+						if isGetType {
+							output[columnName] = fieldType
+						} else {
+							output[fieldType] = columnName
+						}
 					}
 				}
 			}
@@ -275,22 +285,92 @@ func ParseStructTags(data any, tagName string, splitKey ...string) []map[string]
 			field := valueOf.Type().Field(i)
 			tag := field.Tag
 			tagValue := tag.Get(tagName)
-			fieldType := field.Type.String()
-			tmpColumn := map[string]string{}
-			tmpColumn[tagValue] = fieldType
-			output = append(output, tmpColumn)
+			var fieldType string
+			if isGetType {
+				fieldType = field.Type.String()
+			} else {
+				fieldType = field.Name
+			}
+			if isGetType {
+				// tag name : elem type
+				output[tagValue] = fieldType
+			} else {
+				// elem name : tag name
+				output[fieldType] = tagValue
+			}
 		}
 	}
 
 	return output
 }
 
-func ParseStructGormTags(data any) []map[string]string {
-	return ParseStructTags(data, "gorm", "column:")
+func ConvStructGormTags(data any, isGetType bool) map[string]string {
+	return ConvStructTags(data, "gorm", isGetType, "column:")
 }
 
-func ParseStructJsonTags(data any) []map[string]string {
-	return ParseStructTags(data, "json")
+func ConvStructJsonTags(data any, isGetType bool) map[string]string {
+	return ConvStructTags(data, "json", isGetType)
+}
+
+func ConvStructSparkTags(data any, isGetType bool) map[string]string {
+	return ConvStructTags(data, "spark", isGetType)
+}
+
+func ConvStructDoubleTags(data any, tagName1, tagName2 string, splitKey ...[2]string) map[string]string {
+	valueOf := reflect.ValueOf(data)
+	if valueOf.Kind() == reflect.Ptr {
+		valueOf = valueOf.Elem()
+	}
+	if valueOf.Kind() != reflect.Struct {
+		return nil
+	}
+	output := make(map[string]string, valueOf.NumField())
+	if len(splitKey) > 0 {
+		for i := 0; i < valueOf.NumField(); i++ {
+			var (
+				tag1Name string
+				tag2Name string
+			)
+			field := valueOf.Type().Field(i)
+			tag := field.Tag
+			tag1Value := tag.Get(tagName1)
+			if tag1Value != "" {
+				splitValue := strings.Split(tag1Value, ",")
+				for _, Value := range splitValue {
+					if strings.HasPrefix(Value, splitKey[0][0]) {
+						tag1Name = strings.TrimPrefix(Value, splitKey[0][0])
+					}
+				}
+			}
+			tag2Value := tag.Get(tagName2)
+			if tag2Value != "" {
+				splitValue := strings.Split(tag1Value, ",")
+				for _, Value := range splitValue {
+					if strings.HasPrefix(Value, splitKey[0][0]) {
+						tag2Name = strings.TrimPrefix(Value, splitKey[0][0])
+					}
+				}
+			}
+			output[tag1Name] = tag2Name
+		}
+	} else {
+		for i := 0; i < valueOf.NumField(); i++ {
+			field := valueOf.Type().Field(i)
+			tag := field.Tag
+			tag1Value := tag.Get(tagName1)
+			tag2Value := tag.Get(tagName2)
+			output[tag1Value] = tag2Value
+		}
+	}
+	return output
+}
+
+func MapTurnOver(input map[string]string) map[string]string {
+	var output = make(map[string]string, len(input))
+	for key, value := range input {
+		output[value] = key
+	}
+	return output
 }
 
 func findLongKeyAndLongValue(data []map[string]string) (maxKeyLen, maxValueLen int) {

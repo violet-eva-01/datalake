@@ -240,7 +240,7 @@ type CosInformationParse struct {
 }
 
 func (c *CosInformationParse) parse(ci CosInformation) error {
-	err := c.parse(ci)
+	err := c.CIStreamlineParse.parse(ci)
 	if err != nil {
 		return err
 	}
