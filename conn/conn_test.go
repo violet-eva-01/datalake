@@ -12,9 +12,10 @@ import (
 )
 
 type Water struct {
-	Word  string  `json:"word" spark:"word_name"`
-	Sale  float32 `json:"sale" spark:"sale_name"`
-	Count int64   `json:"count"` // spark:"count_name"`
+	Word  string          `json:"word" spark:"word_name"`
+	Sale  float32         `json:"sale" spark:"sale_name"`
+	Count int64           `json:"count"` // spark:"count_name"`
+	Times arrow.Timestamp `json:"times"`
 }
 
 func TestStructToDF(t *testing.T) {
@@ -28,6 +29,7 @@ func TestStructToDF(t *testing.T) {
 		w.Word = fmt.Sprintf("w%d", i)
 		w.Sale = float32(i)
 		w.Count = int64(i)
+		w.Times = arrow.Timestamp(i)
 		ws = append(ws, w)
 	}
 	frame, err := sql.CreateDataFrameFromStruct(context.Background(), ws, true)

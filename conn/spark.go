@@ -82,6 +82,8 @@ func StructToStructType(v interface{}, isRename bool) (*types.StructType, error)
 			filed.DataType = types.STRING
 		case time.Time:
 			filed.DataType = types.DATE
+		case arrow.Timestamp:
+			filed.DataType = types.TIMESTAMP
 		default:
 			panic(fmt.Errorf("unsupported data type: %s", vt))
 		}
