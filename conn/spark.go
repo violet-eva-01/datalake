@@ -46,7 +46,7 @@ func NewSparkSQL(ip string, port int, args ...map[string]string) (*SparkSQL, err
 	}, nil
 }
 
-func (s *SparkSQL) sql(query string) (sql.DataFrame, error) {
+func (s *SparkSQL) Exec(query string) (sql.DataFrame, error) {
 	return s.Sql(s.ctx, query)
 }
 
@@ -332,7 +332,7 @@ func (s *SparkSQL) ExecQuery(query string) (output []map[string]interface{}, err
 		collect []types.Row
 	)
 
-	frame, err = s.sql(query)
+	frame, err = s.Exec(query)
 	if err != nil {
 		return
 	}
@@ -361,7 +361,7 @@ func (s *SparkSQL) ExecQueryToMapString(query string) (output []map[string]strin
 		collect []types.Row
 	)
 
-	frame, err = s.sql(query)
+	frame, err = s.Exec(query)
 	if err != nil {
 		return
 	}
@@ -390,7 +390,7 @@ func (s *SparkSQL) ExecQueryBatchProcessingForString(query string, batchSize int
 		collect []types.Row
 	)
 
-	frame, err = s.sql(query)
+	frame, err = s.Exec(query)
 	if err != nil {
 		return err
 	}
@@ -438,7 +438,7 @@ func (s *SparkSQL) ExecQueryBatchProcessingForInterface(query string, batchSize 
 		collect []types.Row
 	)
 
-	frame, err = s.sql(query)
+	frame, err = s.Exec(query)
 	if err != nil {
 		return err
 	}
