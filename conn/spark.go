@@ -12,6 +12,7 @@ import (
 	"github.com/apache/spark-connect-go/v35/spark/sql/types"
 	"github.com/violet-eva-01/datalake/util"
 	"reflect"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -80,13 +81,20 @@ func StructToStructType(v interface{}, isRename bool) (*types.StructType, error)
 			filed.Name = tf.Field(i).Name
 		}
 		switch vt := vf.Field(i).Interface().(type) {
+		case int:
+			switch runtime.GOARCH {
+			case "386", "arm":
+				filed.DataType = types.INTEGER
+			default:
+				filed.DataType = types.LONG
+			}
 		case bool:
 			filed.DataType = types.BOOLEAN
 		case int8:
 			filed.DataType = types.BYTE
 		case int16:
 			filed.DataType = types.SHORT
-		case int32, int:
+		case int32:
 			filed.DataType = types.INTEGER
 		case int64:
 			filed.DataType = types.LONG
@@ -298,9 +306,19 @@ func (s *SparkSQL) CreateDataFrame(ctx context.Context, data [][]any, schema *ty
 			case types.SHORT:
 				rb.Field(i).(*array.Int16Builder).Append(row[i].(int16))
 			case types.INTEGER:
-				rb.Field(i).(*array.Int32Builder).Append(row[i].(int32))
+				switch row[i].(type) {
+				case int:
+					rb.Field(i).(*array.Int32Builder).Append(int32(row[i].(int)))
+				default:
+					rb.Field(i).(*array.Int32Builder).Append(row[i].(int32))
+				}
 			case types.LONG:
-				rb.Field(i).(*array.Int64Builder).Append(row[i].(int64))
+				switch row[i].(type) {
+				case int:
+					rb.Field(i).(*array.Int64Builder).Append(int64(row[i].(int)))
+				default:
+					rb.Field(i).(*array.Int64Builder).Append(row[i].(int64))
+				}
 			case types.FLOAT:
 				rb.Field(i).(*array.Float32Builder).Append(row[i].(float32))
 			case types.DOUBLE:

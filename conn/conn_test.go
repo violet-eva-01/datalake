@@ -15,8 +15,8 @@ import (
 type Water struct {
 	Word  string    `json:"word" spark:"word_name"`
 	Sale  float32   `json:"sale" spark:"sale_name"`
-	Count int64     `json:"count"` // spark:"count_name"`
-	Times time.Time `json:"times" spark:"times_name" type:"timestamp"`
+	Count int64     `json:"count"`                    // spark:"count_name"`
+	Times time.Time `json:"times" spark:"times_name"` // type:"timestamp"`
 }
 
 func TestDFToMap(t *testing.T) {
