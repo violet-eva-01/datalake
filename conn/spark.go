@@ -17,19 +17,32 @@ import (
 )
 
 type SparkSQL struct {
-	SS      sql.SparkSession
+	sql.SparkSession
 	Timeout time.Duration
 }
 
-func NewSparkSQL(remote string, timeout time.Duration) (*SparkSQL, error) {
+func NewSparkSQL(ip string, port int, timeout time.Duration, args ...map[string]string) (*SparkSQL, error) {
+	var (
+		param  string
+		remote = fmt.Sprintf("sc://%s:%d", ip, port)
+	)
+	if len(args) > 0 {
+		param = "/"
+		for _, arg := range args {
+			for k, v := range arg {
+				param += fmt.Sprintf(";%s=%s", k, v)
+			}
+		}
+		remote += param
+	}
 	ctx := context.Background()
-	ss, err := sql.NewSessionBuilder().Remote(remote).Build(ctx)
+	sparkSQL, err := sql.NewSessionBuilder().Remote(remote).Build(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return &SparkSQL{
-		SS:      ss,
-		Timeout: timeout,
+		sparkSQL,
+		timeout,
 	}, nil
 }
 
@@ -82,6 +95,8 @@ func StructToStructType(v interface{}, isRename bool) (*types.StructType, error)
 			filed.DataType = types.STRING
 		case time.Time:
 			filed.DataType = types.DATE
+		case arrow.Timestamp:
+			filed.DataType = types.TIMESTAMP
 		default:
 			panic(fmt.Errorf("unsupported data type: %s", vt))
 		}
@@ -213,21 +228,16 @@ func mapToSliceAny(structType *types.StructType, v interface{}, isTag bool, isRe
 	} else if isTag {
 		mappingTags = util.ConvStructJsonTags(v, false)
 	}
-	fmt.Println(mappingTags)
 	var rows [][]interface{}
 	for _, row := range data {
-		fmt.Println(row)
 		var record []interface{}
 		for i := 0; i < length; i++ {
 			var rec interface{}
 			if len(mappingTags) > 0 {
-				fmt.Println(structType.Fields[i].Name)
-				fmt.Println(mappingTags[structType.Fields[i].Name])
 				rec = row[mappingTags[structType.Fields[i].Name]]
 				if rec == nil && !isTag {
 					rec = row[structType.Fields[i].Name]
 				}
-				fmt.Println(rec)
 			} else {
 				rec = row[structType.Fields[i].Name]
 			}
@@ -308,10 +318,10 @@ func (s *SparkSQL) CreateDataFrame(ctx context.Context, data [][]any, schema *ty
 	defer rec.Release()
 	tbl := array.NewTableFromRecords(arrowSchema, []arrow.Record{rec})
 	defer tbl.Release()
-	return s.SS.CreateDataFrameFromArrow(ctx, tbl)
+	return s.CreateDataFrameFromArrow(ctx, tbl)
 }
 
-func (s *SparkSQL) ExecQueryBatchProcessing(query string, batchSize int, function ...func(input []map[string]interface{}) error) (err error) {
+func (s *SparkSQL) ExecQuery(query string) (output []map[string]interface{}, err error) {
 
 	var (
 		frame   sql.DataFrame
@@ -321,7 +331,122 @@ func (s *SparkSQL) ExecQueryBatchProcessing(query string, batchSize int, functio
 	ctx, cancelFunc := context.WithTimeout(context.Background(), s.Timeout)
 	defer cancelFunc()
 
-	frame, err = s.SS.Sql(ctx, query)
+	frame, err = s.Sql(ctx, query)
+	if err != nil {
+		return
+	}
+
+	collect, err = frame.Collect(ctx)
+	if err != nil {
+		return
+	}
+
+	var rows []map[string]interface{}
+	for _, row := range collect {
+		record := make(map[string]interface{})
+		for _, name := range row.FieldNames() {
+			record[name] = row.Value(name)
+		}
+		rows = append(rows, record)
+	}
+
+	return
+}
+
+func (s *SparkSQL) ExecQueryToMapString(query string) (output []map[string]string, err error) {
+
+	var (
+		frame   sql.DataFrame
+		collect []types.Row
+	)
+
+	ctx, cancelFunc := context.WithTimeout(context.Background(), s.Timeout)
+	defer cancelFunc()
+
+	frame, err = s.Sql(ctx, query)
+	if err != nil {
+		return
+	}
+
+	collect, err = frame.Collect(ctx)
+	if err != nil {
+		return
+	}
+
+	var rows []map[string]string
+	for _, row := range collect {
+		record := make(map[string]string)
+		for _, name := range row.FieldNames() {
+			record[name] = fmt.Sprintf("%s", row.Value(name))
+		}
+		rows = append(rows, record)
+	}
+
+	return
+}
+
+func (s *SparkSQL) ExecQueryBatchProcessingForString(query string, batchSize int, function ...func(input []map[string]string) error) (err error) {
+
+	var (
+		frame   sql.DataFrame
+		collect []types.Row
+	)
+
+	ctx, cancelFunc := context.WithTimeout(context.Background(), s.Timeout)
+	defer cancelFunc()
+
+	frame, err = s.Sql(ctx, query)
+	if err != nil {
+		return err
+	}
+
+	collect, err = frame.Collect(ctx)
+	if err != nil {
+		return err
+	}
+
+	var rows []map[string]string
+	for index, row := range collect {
+		record := make(map[string]string)
+		for _, name := range row.FieldNames() {
+			record[name] = fmt.Sprintf("%s", row.Value(name))
+		}
+		rows = append(rows, record)
+		if (index+1)%batchSize == 0 {
+			for _, fun := range function {
+				err = fun(rows)
+				if err != nil {
+					return err
+				}
+			}
+			rows = rows[:0]
+		}
+	}
+
+	if len(rows) > 0 {
+		for _, fun := range function {
+			err = fun(rows)
+			if err != nil {
+				return err
+			}
+		}
+		rows = rows[:0]
+	}
+
+	return nil
+}
+
+func (s *SparkSQL) ExecQueryBatchProcessingForInterface(query string, batchSize int, function ...func(input []map[string]interface{}) error) (err error) {
+
+	var (
+		frame   sql.DataFrame
+		collect []types.Row
+	)
+
+	ctx, cancelFunc := context.WithTimeout(context.Background(), s.Timeout)
+	defer cancelFunc()
+
+	frame, err = s.Sql(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -333,7 +458,7 @@ func (s *SparkSQL) ExecQueryBatchProcessing(query string, batchSize int, functio
 
 	var rows []map[string]interface{}
 	for index, row := range collect {
-		record := map[string]interface{}{}
+		record := make(map[string]interface{})
 		for _, name := range row.FieldNames() {
 			record[name] = row.Value(name)
 		}

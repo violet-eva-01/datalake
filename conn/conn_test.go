@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/spark-connect-go/v35/spark/sql/types"
+	"github.com/google/uuid"
 	"reflect"
 	"testing"
 	"time"
@@ -17,8 +18,8 @@ type Water struct {
 	Count int64   `json:"count"` // spark:"count_name"`
 }
 
-func TestStructToDF(t *testing.T) {
-	sql, err := NewSparkSQL("sc://127.0.0.1:15002", 1000000)
+func TestDFToMap(t *testing.T) {
+	sql, err := NewSparkSQL("127.0.0.1", 15002, 1000000)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,11 +35,55 @@ func TestStructToDF(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	frame.Show(context.Background(), 100, false)
+	err = frame.Show(context.Background(), 100, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	collect, err := frame.Collect(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rows []map[string]interface{}
+	for _, row := range collect {
+		rec := make(map[string]interface{})
+		for _, i := range row.FieldNames() {
+			rec[i] = row.Value(i)
+		}
+		rows = append(rows, rec)
+	}
+}
+
+func TestStructToDF(t *testing.T) {
+	param := map[string]string{}
+	param["user_id"] = "aldenDong"
+	param["session_id"] = uuid.NewString()
+	fmt.Println(param)
+	sql, err := NewSparkSQL("127.0.0.1", 15002, 1000000, param)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ws []Water
+	for i := 0; i < 10; i++ {
+		var w Water
+		w.Word = fmt.Sprintf("w%d", i)
+		w.Sale = float32(i)
+		w.Count = int64(i)
+		ws = append(ws, w)
+	}
+	frame, err := sql.CreateDataFrameFromStruct(context.Background(), ws, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = frame.Show(context.Background(), 100, false)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestMapToDF(t *testing.T) {
-	sql, err := NewSparkSQL("sc://127.0.0.1:15002", 1000000)
+	param := map[string]string{}
+	param["token"] = "abckef"
+	sql, err := NewSparkSQL("127.0.0.1", 15002, 1000000, param)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +95,7 @@ func TestMapToDF(t *testing.T) {
 		w["count"] = int64(i)
 		ws = append(ws, w)
 	}
-	frame, err := sql.CreateDataFrameFromMap(context.Background(), Water{}, false, false, ws...)
+	frame, err := sql.CreateDataFrameFromMap(context.Background(), Water{}, true, true, ws...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,12 +103,14 @@ func TestMapToDF(t *testing.T) {
 }
 
 func TestConn(t *testing.T) {
-	sql, err := NewSparkSQL("sc://127.0.0.1:15002", 1000000)
+	param := map[string]string{}
+	param["token"] = "abckef"
+	sql, err := NewSparkSQL("127.0.0.1", 15002, 1000000, param)
 	if err != nil {
 		t.Fatal(err)
 	}
 	//frame, err := sql.SS.Sql(context.Background(), "select 'apple' as word, cast(123.22 as decimal(38,18)) as count union all select 'orange' as word, cast(456.11 as decimal(38,18)) as count")
-	frame, err := sql.SS.Sql(context.Background(), "select 'apple' as word,123.11 as count union all select 'orange' as word, 456.22 as count")
+	frame, err := sql.Sql(context.Background(), "select 'apple' as word,123.11 as count union all select 'orange' as word, 456.22 as count")
 	if err != nil {
 		t.Fatal(err)
 	}
