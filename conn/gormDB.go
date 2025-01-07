@@ -62,6 +62,7 @@ func connGormDB(dbType, dbName, user, passwd, host string, port, maxIdleConn, ma
 	if err != nil {
 		return
 	}
+
 	sqlDB.SetMaxIdleConns(maxIdleConn)
 	sqlDB.SetMaxOpenConns(maxOpenConn)
 	sqlDB.SetConnMaxLifetime(time.Duration(maxLifetime) * time.Second)

@@ -79,7 +79,6 @@ func StructToStructType(v interface{}, isRename bool) (*types.StructType, error)
 		} else {
 			filed.Name = tf.Field(i).Name
 		}
-		filed.Metadata = nil
 		switch vt := vf.Field(i).Interface().(type) {
 		case bool:
 			filed.DataType = types.BOOLEAN
@@ -98,12 +97,17 @@ func StructToStructType(v interface{}, isRename bool) (*types.StructType, error)
 		case string:
 			filed.DataType = types.STRING
 		case time.Time:
-			filed.DataType = types.DATE
-		case arrow.Timestamp:
-			filed.DataType = types.TIMESTAMP
+			tag := tf.Field(i).Tag.Get("type")
+			if tag == "timestamp" {
+				filed.DataType = types.TIMESTAMP
+			} else {
+				filed.DataType = types.DATE
+			}
 		default:
 			panic(fmt.Errorf("unsupported data type: %s", vt))
 		}
+		filed.Metadata = nil
+		filed.Nullable = true
 		fields = append(fields, filed)
 	}
 	return &types.StructType{
@@ -304,8 +308,8 @@ func (s *SparkSQL) CreateDataFrame(ctx context.Context, data [][]any, schema *ty
 			case types.STRING:
 				rb.Field(i).(*array.StringBuilder).Append(row[i].(string))
 			case types.DATE:
-				rb.Field(i).(*array.Date32Builder).Append(
-					arrow.Date32FromTime(row[i].(time.Time)))
+				rb.Field(i).(*array.Date32Builder).Append(arrow.Date32FromTime(row[i].(time.Time)))
+			// case filed , err is execution error: [Internal] [UNSUPPORTED_ARROWTYPE] Unsupported arrow type Timestamp(MILLISECOND, UTC).
 			case types.TIMESTAMP:
 				ts, err := arrow.TimestampFromTime(row[i].(time.Time), arrow.Millisecond)
 				if err != nil {

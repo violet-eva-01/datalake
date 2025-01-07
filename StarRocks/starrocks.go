@@ -24,15 +24,15 @@ type descResult struct {
 	Extra   string `gorm:"column:extra"`
 }
 type StarRocks struct {
-	host            string
-	feHttpPort      int
-	user            string
-	passWord        string
-	StarRocksSQLDB  *conn.SQLDB
-	StarRocksGormDB *gorm.DB
-	retryCount      int
-	retryInterval   time.Duration
-	queryTimeout    time.Duration
+	host          string
+	feHttpPort    int
+	user          string
+	passWord      string
+	SQLDB         *conn.SQLDB
+	GormDB        *gorm.DB
+	retryCount    int
+	retryInterval time.Duration
+	queryTimeout  time.Duration
 }
 
 func NewStarRocksAll(dbName, user, passwd, host string, port, feHttpPort, retryCount, retryInterval, queryTimeout, maxIdleConn, maxOpenConn, maxLifetime int, opts ...string) (*StarRocks, error) {
@@ -45,15 +45,15 @@ func NewStarRocksAll(dbName, user, passwd, host string, port, feHttpPort, retryC
 		return nil, err
 	}
 	return &StarRocks{
-		host:            host,
-		feHttpPort:      feHttpPort,
-		user:            user,
-		passWord:        passwd,
-		StarRocksGormDB: gormDB,
-		StarRocksSQLDB:  sqlDB,
-		retryCount:      retryCount,
-		retryInterval:   time.Duration(retryInterval) * time.Second,
-		queryTimeout:    time.Duration(queryTimeout) * time.Second,
+		host:          host,
+		feHttpPort:    feHttpPort,
+		user:          user,
+		passWord:      passwd,
+		GormDB:        gormDB,
+		SQLDB:         sqlDB,
+		retryCount:    retryCount,
+		retryInterval: time.Duration(retryInterval) * time.Second,
+		queryTimeout:  time.Duration(queryTimeout) * time.Second,
 	}, err
 }
 
@@ -68,15 +68,15 @@ func NewStarRocks(dbName, user, passwd, host string, timeout int, opts ...string
 		return nil, err
 	}
 	return &StarRocks{
-		host:            host,
-		feHttpPort:      feHttpPort,
-		user:            user,
-		passWord:        passwd,
-		StarRocksGormDB: gormDB,
-		StarRocksSQLDB:  sqlDB,
-		retryCount:      retryCount,
-		retryInterval:   time.Duration(retryInterval) * time.Second,
-		queryTimeout:    time.Duration(queryTimeout) * time.Second,
+		host:          host,
+		feHttpPort:    feHttpPort,
+		user:          user,
+		passWord:      passwd,
+		GormDB:        gormDB,
+		SQLDB:         sqlDB,
+		retryCount:    retryCount,
+		retryInterval: time.Duration(retryInterval) * time.Second,
+		queryTimeout:  time.Duration(queryTimeout) * time.Second,
 	}, err
 }
 
@@ -129,7 +129,7 @@ func (s *StarRocks) jsonStreamingLoadToStarRocks(dbName, tblName string, body []
 	}
 
 	descSQL := fmt.Sprintf("desc %s.%s", dbName, tblName)
-	err = s.StarRocksGormDB.Raw(descSQL).Find(&dr).Error
+	err = s.GormDB.Raw(descSQL).Find(&dr).Error
 	if err != nil {
 		return
 	}
@@ -194,6 +194,6 @@ func (s *StarRocks) jsonStreamingLoadToStarRocks(dbName, tblName string, body []
 }
 
 func (s *StarRocks) Close() error {
-	err := s.StarRocksSQLDB.SQLDB.Close()
+	err := s.SQLDB.Close()
 	return err
 }
