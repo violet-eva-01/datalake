@@ -55,20 +55,20 @@ func CiSplit(length int, ciArr []CosInformation) map[int][]CosInformation {
 }
 
 type CIStreamlineParse struct {
-	Name             string `gorm:"column:name" json:"name"`
-	PathLevel        int    `gorm:"column:path_level" json:"path_level"`
-	ExtendLevel0Name string `gorm:"column:extend_level0_name" json:"extend_level0_name"`
-	ExtendLevel1Name string `gorm:"column:extend_level1_name" json:"extend_level1_name"`
-	ExtendLevel2Name string `gorm:"column:extend_level2_name" json:"extend_level2_name"`
-	ExtendLevel3Name string `gorm:"column:extend_level3_name" json:"extend_level3_name"`
-	ExtendLevel4Name string `gorm:"column:extend_level4_name" json:"extend_level4_name"`
-	ExtendLevel5Name string `gorm:"column:extend_level5_name" json:"extend_level5_name"`
-	ExtendLevel6Name string `gorm:"column:extend_level6_name" json:"extend_level6_name"`
-	TableName        string `gorm:"column:table_name" json:"table_name"`
-	DBName           string `gorm:"column:db_name" json:"db_name"`
-	TBLName          string `gorm:"column:tbl_name" json:"tbl_name"`
-	Type             int    `gorm:"column:type" json:"type"`
-	Size             int64  `gorm:"column:size" json:"size"`
+	Name             string `gorm:"column:name" json:"name" spark:"name"`
+	PathLevel        int    `gorm:"column:path_level" json:"path_level" spark:"path_level"`
+	ExtendLevel0Name string `gorm:"column:extend_level0_name" json:"extend_level0_name" spark:"extend_level0_name"`
+	ExtendLevel1Name string `gorm:"column:extend_level1_name" json:"extend_level1_name" spark:"extend_level1_name"`
+	ExtendLevel2Name string `gorm:"column:extend_level2_name" json:"extend_level2_name" spark:"extend_level2_name"`
+	ExtendLevel3Name string `gorm:"column:extend_level3_name" json:"extend_level3_name" spark:"extend_level3_name"`
+	ExtendLevel4Name string `gorm:"column:extend_level4_name" json:"extend_level4_name" spark:"extend_level4_name"`
+	ExtendLevel5Name string `gorm:"column:extend_level5_name" json:"extend_level5_name" spark:"extend_level5_name"`
+	ExtendLevel6Name string `gorm:"column:extend_level6_name" json:"extend_level6_name" spark:"extend_level6_name"`
+	TableName        string `gorm:"column:table_name" json:"table_name" spark:"table_name"`
+	DBName           string `gorm:"column:db_name" json:"db_name" spark:"db_name"`
+	TBLName          string `gorm:"column:tbl_name" json:"tbl_name" spark:"tbl_name"`
+	Type             int    `gorm:"column:type" json:"type" spark:"type"`
+	Size             int64  `gorm:"column:size" json:"size" spark:"size"`
 }
 
 func (c *CIStreamlineParse) parse(ci CosInformation) error {
@@ -230,13 +230,13 @@ func CosMetaCISParse(input []CosInformation, lengths ...int) []CIStreamlineParse
 
 type CosInformationParse struct {
 	CIStreamlineParse
-	Atime time.Time `gorm:"column:atime" json:"atime"`
-	Mtime time.Time `gorm:"column:mtime" json:"mtime"`
-	Ctime time.Time `gorm:"column:ctime" json:"ctime"`
-	Acl   string    `gorm:"column:acl" json:"acl"`
-	User  string    `gorm:"column:user" json:"user"`
-	Group string    `gorm:"column:group" json:"group"`
-	DT    string    `gorm:"column:dt" json:"dt"`
+	Atime time.Time `gorm:"column:atime" json:"atime" spark:"atime"`
+	Mtime time.Time `gorm:"column:mtime" json:"mtime" spark:"mtime"`
+	Ctime time.Time `gorm:"column:ctime" json:"ctime" spark:"ctime"`
+	Acl   string    `gorm:"column:acl"   json:"acl" spark:"acl"`
+	User  string    `gorm:"column:user"  json:"user" spark:"user"`
+	Group string    `gorm:"column:group" json:"group" spark:"group"`
+	DT    string    `gorm:"column:dt"    json:"dt" spark:"dt"`
 }
 
 func (c *CosInformationParse) parse(ci CosInformation) error {
