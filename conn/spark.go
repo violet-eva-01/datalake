@@ -18,10 +18,10 @@ import (
 
 type SparkSQL struct {
 	sql.SparkSession
-	Timeout time.Duration
+	ctx context.Context
 }
 
-func NewSparkSQL(ip string, port int, timeout time.Duration, args ...map[string]string) (*SparkSQL, error) {
+func NewSparkSQL(ip string, port int, args ...map[string]string) (*SparkSQL, error) {
 	var (
 		param  string
 		remote = fmt.Sprintf("sc://%s:%d", ip, port)
@@ -42,8 +42,12 @@ func NewSparkSQL(ip string, port int, timeout time.Duration, args ...map[string]
 	}
 	return &SparkSQL{
 		sparkSQL,
-		timeout,
+		context.Background(),
 	}, nil
+}
+
+func (s *SparkSQL) sql(query string) (sql.DataFrame, error) {
+	return s.Sql(s.ctx, query)
 }
 
 // StructToStructType
@@ -150,7 +154,7 @@ func anyToSliceAny(data any) []interface{} {
 // @param isRename == true ,Rename the dataframe based on the spark tag , Insufficient tags are supplemented by elem name
 // @return sql.DataFrame
 // @return error
-func (s *SparkSQL) CreateDataFrameFromStruct(ctx context.Context, data any, isRename bool) (sql.DataFrame, error) {
+func (s *SparkSQL) CreateDataFrameFromStruct(data any, isRename bool) (sql.DataFrame, error) {
 	rows := anyToSliceAny(data)
 	if len(rows) == 0 {
 		return nil, fmt.Errorf("no data")
@@ -160,7 +164,7 @@ func (s *SparkSQL) CreateDataFrameFromStruct(ctx context.Context, data any, isRe
 		return nil, err
 	}
 	sliceAny := SAToTSA(structType, rows...)
-	return s.CreateDataFrame(ctx, sliceAny, structType)
+	return s.CreateDataFrame(s.ctx, sliceAny, structType)
 }
 
 func convStructDoubleTags(data any, tagName1, tagName2 string, splitKey ...[2]string) map[string]string {
@@ -257,7 +261,7 @@ func mapToSliceAny(structType *types.StructType, v interface{}, isTag bool, isRe
 // @param data
 // @return sql.DataFrame
 // @return error
-func (s *SparkSQL) CreateDataFrameFromMap(ctx context.Context, v interface{}, isTag bool, isRename bool, data ...map[string]interface{}) (sql.DataFrame, error) {
+func (s *SparkSQL) CreateDataFrameFromMap(v interface{}, isTag bool, isRename bool, data ...map[string]interface{}) (sql.DataFrame, error) {
 	structType, err := StructToStructType(v, isRename)
 	if err != nil {
 		return nil, err
@@ -266,7 +270,7 @@ func (s *SparkSQL) CreateDataFrameFromMap(ctx context.Context, v interface{}, is
 	if err != nil {
 		return nil, err
 	}
-	return s.CreateDataFrame(ctx, sliceAny, structType)
+	return s.CreateDataFrame(s.ctx, sliceAny, structType)
 }
 
 func (s *SparkSQL) CreateDataFrame(ctx context.Context, data [][]any, schema *types.StructType) (sql.DataFrame, error) {
@@ -328,15 +332,12 @@ func (s *SparkSQL) ExecQuery(query string) (output []map[string]interface{}, err
 		collect []types.Row
 	)
 
-	ctx, cancelFunc := context.WithTimeout(context.Background(), s.Timeout)
-	defer cancelFunc()
-
-	frame, err = s.Sql(ctx, query)
+	frame, err = s.sql(query)
 	if err != nil {
 		return
 	}
 
-	collect, err = frame.Collect(ctx)
+	collect, err = frame.Collect(s.ctx)
 	if err != nil {
 		return
 	}
@@ -360,15 +361,12 @@ func (s *SparkSQL) ExecQueryToMapString(query string) (output []map[string]strin
 		collect []types.Row
 	)
 
-	ctx, cancelFunc := context.WithTimeout(context.Background(), s.Timeout)
-	defer cancelFunc()
-
-	frame, err = s.Sql(ctx, query)
+	frame, err = s.sql(query)
 	if err != nil {
 		return
 	}
 
-	collect, err = frame.Collect(ctx)
+	collect, err = frame.Collect(s.ctx)
 	if err != nil {
 		return
 	}
@@ -392,15 +390,12 @@ func (s *SparkSQL) ExecQueryBatchProcessingForString(query string, batchSize int
 		collect []types.Row
 	)
 
-	ctx, cancelFunc := context.WithTimeout(context.Background(), s.Timeout)
-	defer cancelFunc()
-
-	frame, err = s.Sql(ctx, query)
+	frame, err = s.sql(query)
 	if err != nil {
 		return err
 	}
 
-	collect, err = frame.Collect(ctx)
+	collect, err = frame.Collect(s.ctx)
 	if err != nil {
 		return err
 	}
@@ -443,15 +438,12 @@ func (s *SparkSQL) ExecQueryBatchProcessingForInterface(query string, batchSize 
 		collect []types.Row
 	)
 
-	ctx, cancelFunc := context.WithTimeout(context.Background(), s.Timeout)
-	defer cancelFunc()
-
-	frame, err = s.Sql(ctx, query)
+	frame, err = s.sql(query)
 	if err != nil {
 		return err
 	}
 
-	collect, err = frame.Collect(ctx)
+	collect, err = frame.Collect(s.ctx)
 	if err != nil {
 		return err
 	}
