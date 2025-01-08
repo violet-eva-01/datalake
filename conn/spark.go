@@ -27,7 +27,7 @@ func NewSparkSQL(ip string, port int, args ...map[string]string) (*SparkSQL, err
 		param  string
 		remote = fmt.Sprintf("sc://%s:%d", ip, port)
 	)
-	if len(args) > 0 {
+	if len(args) > 0 && len(args[0]) > 0 {
 		param = "/"
 		for _, arg := range args {
 			for k, v := range arg {
