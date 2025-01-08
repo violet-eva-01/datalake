@@ -41,6 +41,10 @@ func NewSparkSQL(ip string, port int, args ...map[string]string) (*SparkSQL, err
 	if err != nil {
 		return nil, err
 	}
+	_, err = sparkSQL.Sql(ctx, "select 1")
+	if err != nil {
+		return nil, err
+	}
 	return &SparkSQL{
 		sparkSQL,
 		context.Background(),
