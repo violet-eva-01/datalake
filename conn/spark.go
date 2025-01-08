@@ -405,19 +405,11 @@ func (s *SparkSQL) ExecQueryToMapString(query string) (output []map[string]strin
 	return
 }
 
-func (s *SparkSQL) ExecQueryBatchProcessingForString(query string, batchSize int, function ...func(input []map[string]string) error) (err error) {
+func (s *SparkSQL) DFCollectBatchProcessingForString(df sql.DataFrame, batchSize int, function ...func(input []map[string]string) error) (err error) {
 
-	var (
-		frame   sql.DataFrame
-		collect []types.Row
-	)
+	var collect []types.Row
 
-	frame, err = s.Exec(query)
-	if err != nil {
-		return err
-	}
-
-	collect, err = frame.Collect(s.ctx)
+	collect, err = df.Collect(s.ctx)
 	if err != nil {
 		return err
 	}
@@ -450,26 +442,29 @@ func (s *SparkSQL) ExecQueryBatchProcessingForString(query string, batchSize int
 		rows = rows[:0]
 	}
 
-	return nil
+	return
 }
 
-func (s *SparkSQL) ExecQueryBatchProcessingForInterface(query string, batchSize int, function ...func(input []map[string]interface{}) error) (err error) {
+func (s *SparkSQL) ExecQueryBatchProcessingForString(query string, batchSize int, function ...func(input []map[string]string) error) (err error) {
 
-	var (
-		frame   sql.DataFrame
-		collect []types.Row
-	)
+	var frame sql.DataFrame
 
 	frame, err = s.Exec(query)
 	if err != nil {
 		return err
 	}
 
-	collect, err = frame.Collect(s.ctx)
+	return s.DFCollectBatchProcessingForString(frame, batchSize, function...)
+}
+
+func (s *SparkSQL) DFCollectBatchProcessingForInterface(df sql.DataFrame, batchSize int, function ...func(input []map[string]interface{}) error) (err error) {
+
+	var collect []types.Row
+
+	collect, err = df.Collect(s.ctx)
 	if err != nil {
 		return err
 	}
-
 	var rows []map[string]interface{}
 	for index, row := range collect {
 		record := make(map[string]interface{})
@@ -498,5 +493,19 @@ func (s *SparkSQL) ExecQueryBatchProcessingForInterface(query string, batchSize 
 		rows = rows[:0]
 	}
 
-	return nil
+	return
+}
+
+func (s *SparkSQL) ExecQueryBatchProcessingForInterface(query string, batchSize int, function ...func(input []map[string]interface{}) error) (err error) {
+
+	var (
+		frame sql.DataFrame
+	)
+
+	frame, err = s.Exec(query)
+	if err != nil {
+		return err
+	}
+
+	return s.DFCollectBatchProcessingForInterface(frame, batchSize, function...)
 }
