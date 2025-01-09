@@ -229,28 +229,121 @@ func CosMetaCISParse(input []CosInformation, lengths ...int) []CIStreamlineParse
 }
 
 type CosInformationParse struct {
-	CIStreamlineParse
-	Atime time.Time `gorm:"column:atime" json:"atime" spark:"atime"`
-	Mtime time.Time `gorm:"column:mtime" json:"mtime" spark:"mtime"`
-	Ctime time.Time `gorm:"column:ctime" json:"ctime" spark:"ctime"`
-	Acl   string    `gorm:"column:acl"   json:"acl" spark:"acl"`
-	User  string    `gorm:"column:user"  json:"user" spark:"user"`
-	Group string    `gorm:"column:group" json:"group" spark:"group"`
-	DT    string    `gorm:"column:dt"    json:"dt" spark:"dt"`
+	Name             string    `gorm:"column:name" json:"name" spark:"name"`
+	PathLevel        int       `gorm:"column:path_level" json:"path_level" spark:"path_level"`
+	ExtendLevel0Name string    `gorm:"column:extend_level0_name" json:"extend_level0_name" spark:"extend_level0_name"`
+	ExtendLevel1Name string    `gorm:"column:extend_level1_name" json:"extend_level1_name" spark:"extend_level1_name"`
+	ExtendLevel2Name string    `gorm:"column:extend_level2_name" json:"extend_level2_name" spark:"extend_level2_name"`
+	ExtendLevel3Name string    `gorm:"column:extend_level3_name" json:"extend_level3_name" spark:"extend_level3_name"`
+	ExtendLevel4Name string    `gorm:"column:extend_level4_name" json:"extend_level4_name" spark:"extend_level4_name"`
+	ExtendLevel5Name string    `gorm:"column:extend_level5_name" json:"extend_level5_name" spark:"extend_level5_name"`
+	ExtendLevel6Name string    `gorm:"column:extend_level6_name" json:"extend_level6_name" spark:"extend_level6_name"`
+	TableName        string    `gorm:"column:table_name" json:"table_name" spark:"table_name"`
+	DBName           string    `gorm:"column:db_name" json:"db_name" spark:"db_name"`
+	TBLName          string    `gorm:"column:tbl_name" json:"tbl_name" spark:"tbl_name"`
+	Type             int       `gorm:"column:type" json:"type" spark:"type"`
+	Size             int64     `gorm:"column:size" json:"size" spark:"size"`
+	Atime            string    `gorm:"column:atime" json:"atime" spark:"atime"`
+	Mtime            string    `gorm:"column:mtime" json:"mtime" spark:"mtime"`
+	Ctime            string    `gorm:"column:ctime" json:"ctime" spark:"ctime"`
+	Acl              string    `gorm:"column:acl"   json:"acl" spark:"acl"`
+	User             string    `gorm:"column:user"  json:"user" spark:"user"`
+	Group            string    `gorm:"column:group" json:"group" spark:"group"`
+	IsTable          bool      `gorm:"column:is_table" json:"is_table" spark:"is_table"`
+	DT               time.Time `gorm:"column:dt"    json:"dt" spark:"dt"`
 }
 
-func (c *CosInformationParse) parse(ci CosInformation) error {
-	err := c.CIStreamlineParse.parse(ci)
-	if err != nil {
-		return err
+func (c *CosInformationParse) parse(ci CosInformation, hiveMeta map[string]string) error {
+	pathArr := strings.Split(ci.Name, "/")
+	c.Name = ci.Name
+	c.ExtendLevel0Name = "/"
+	if len(pathArr) == 2 && pathArr[1] == "" {
+		c.PathLevel = 0
+	} else {
+		c.PathLevel = len(pathArr) - 1
 	}
-	c.Atime, _ = time.Parse("2006-01-02T15:04:05-0700", ci.Atime)
-	c.Mtime, _ = time.Parse("2006-01-02T15:04:05-0700", ci.Mtime)
-	c.Ctime, _ = time.Parse("2006-01-02T15:04:05-0700", ci.Ctime)
+	isDir := strings.Contains(strings.ToLower(ci.Type), "dir")
+	continueSign := false
+	switch {
+	case len(pathArr) >= 7:
+		if isDir {
+			c.ExtendLevel6Name = pathArr[6]
+		} else {
+			continueSign = true
+		}
+		fallthrough
+	case len(pathArr) == 6:
+		if isDir || (!isDir && continueSign) {
+			c.ExtendLevel5Name = pathArr[5]
+		} else {
+			continueSign = true
+		}
+		fallthrough
+	case len(pathArr) == 5:
+		compile := regexp.MustCompile("(?i)\\.db")
+		isDatabase := compile.Match([]byte(pathArr[4]))
+		isTable := len(pathArr) > 5
+		if isDatabase && isTable {
+			c.DBName = strings.ToLower(compile.ReplaceAllString(pathArr[4], ""))
+			c.TBLName = strings.ToLower(pathArr[5])
+			c.TableName = c.DBName + "." + c.TBLName
+		}
+		if isDir || (!isDir && continueSign) {
+			c.ExtendLevel4Name = pathArr[4]
+		} else {
+			continueSign = true
+		}
+		fallthrough
+	case len(pathArr) == 4:
+		if isDir || (!isDir && continueSign) {
+			c.ExtendLevel3Name = pathArr[3]
+		} else {
+			continueSign = true
+		}
+		fallthrough
+	case len(pathArr) == 3:
+		if isDir || (!isDir && continueSign) {
+			c.ExtendLevel2Name = pathArr[2]
+		} else {
+			continueSign = true
+		}
+		fallthrough
+	case len(pathArr) == 2:
+		if isDir || (!isDir && continueSign) {
+			c.ExtendLevel1Name = pathArr[1]
+		} else {
+			continueSign = true
+		}
+	default:
+		return fmt.Errorf("abnormal data: %+v", ci)
+	}
+	if len(hiveMeta) > 0 {
+		for k, v := range hiveMeta {
+			compile := regexp.MustCompile(fmt.Sprintf("(?i)%s", k))
+			if compile.MatchString(ci.Name) {
+				c.TableName = v
+				c.DBName = strings.Split(v, ".")[0]
+				c.TBLName = strings.Split(v, ".")[1]
+				c.IsTable = true
+			}
+		}
+	}
+	switch ci.Type {
+	case "FILE":
+		c.Type = 2
+	case "DIR":
+		c.Type = 1
+	default:
+		return fmt.Errorf("abnormal data: %+v", ci)
+	}
+	c.Size = ci.SizeByte
+	c.Atime = ci.Atime
+	c.Mtime = ci.Mtime
+	c.Ctime = ci.Ctime
 	c.Acl = ci.Acl
 	c.User = ci.User
 	c.Group = ci.Group
-	c.DT = ci.DT
+	c.DT, _ = time.Parse("2006-01-02", ci.DT)
 	return nil
 }
 
@@ -283,7 +376,7 @@ func CipSplit(length int, ciArr []CosInformationParse) map[int][]CosInformationP
 	return output
 }
 
-func cosMetaParseCI(wg *sync.WaitGroup, input []CosInformation, ch chan []CosInformationParse) {
+func cosMetaParseCI(wg *sync.WaitGroup, input []CosInformation, ch chan []CosInformationParse, hiveMeta map[string]string) {
 	var result []CosInformationParse
 	defer wg.Done()
 	defer func() {
@@ -291,7 +384,7 @@ func cosMetaParseCI(wg *sync.WaitGroup, input []CosInformation, ch chan []CosInf
 	}()
 	for _, ci := range input {
 		tmpCIP := CosInformationParse{}
-		err := tmpCIP.parse(ci)
+		err := tmpCIP.parse(ci, hiveMeta)
 		if err != nil {
 			color.Red(err.Error())
 			continue
@@ -300,7 +393,7 @@ func cosMetaParseCI(wg *sync.WaitGroup, input []CosInformation, ch chan []CosInf
 	}
 }
 
-func CosMetaCIParse(input []CosInformation, lengths ...int) []CosInformationParse {
+func CosMetaCIParse(input []CosInformation, hiveMeta map[string]string, lengths ...int) []CosInformationParse {
 
 	var (
 		length int
@@ -322,7 +415,7 @@ func CosMetaCIParse(input []CosInformation, lengths ...int) []CosInformationPars
 
 	for _, ci := range ciMap {
 		wg.Add(1)
-		go cosMetaParseCI(&wg, ci, ch)
+		go cosMetaParseCI(&wg, ci, ch, hiveMeta)
 	}
 	wg.Wait()
 
