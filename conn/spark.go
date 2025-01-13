@@ -3,16 +3,30 @@ package conn
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"errors"
 	"fmt"
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/memory"
+	"github.com/apache/spark-connect-go/v35/spark/client/channel"
 	"github.com/apache/spark-connect-go/v35/spark/sparkerrors"
 	"github.com/apache/spark-connect-go/v35/spark/sql"
 	"github.com/apache/spark-connect-go/v35/spark/sql/types"
+	"github.com/fatih/color"
+	"github.com/google/uuid"
 	"github.com/violet-eva-01/datalake/util"
+	"golang.org/x/oauth2"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/credentials/oauth"
+	"net"
+	"net/url"
 	"reflect"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -22,10 +36,135 @@ type SparkSQL struct {
 	ctx context.Context
 }
 
-func NewSparkSQL(ip string, port int, args ...map[string]string) (*SparkSQL, error) {
+type BaseBuilder struct {
+	channel.BaseBuilder
+	host      string
+	port      int
+	token     string
+	user      string
+	headers   map[string]string
+	sessionId string
+}
+
+func NewBuilder(connection string) (*BaseBuilder, error) {
+	u, err := url.Parse(connection)
+	if err != nil {
+		return nil, err
+	}
+
+	if u.Hostname() == "" {
+		return nil, sparkerrors.WithType(errors.New("URL must contain a hostname"), sparkerrors.InvalidInputError)
+	}
+
+	if u.Scheme != "sc" {
+		return nil, sparkerrors.WithType(errors.New("URL schema must be set to `sc`"), sparkerrors.InvalidInputError)
+	}
+
+	port := 15002
+	host := u.Host
+	// Check if the host part of the URL contains a port and extract.
+	if strings.Contains(u.Host, ":") {
+		// We can ignore the error here already since the url parsing
+		// raises the error about invalid port.
+		hostStr, portStr, _ := net.SplitHostPort(u.Host)
+		host = hostStr
+		if len(portStr) != 0 {
+			port, err = strconv.Atoi(portStr)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	// Validate that the URL path is empty or follows the right format.
+	if u.Path != "" && !strings.HasPrefix(u.Path, "/;") {
+		return nil, sparkerrors.WithType(
+			fmt.Errorf("the URL path (%v) must be empty or have a proper parameter syntax", u.Path),
+			sparkerrors.InvalidInputError)
+	}
+
+	cb := &BaseBuilder{
+		host:      host,
+		port:      port,
+		headers:   make(map[string]string),
+		sessionId: uuid.NewString(),
+	}
+	elements := strings.Split(u.Path, ";")
+	for _, e := range elements {
+		props := strings.Split(e, "=")
+		if len(props) == 2 {
+			if props[0] == "token" {
+				cb.token = props[1]
+			} else if props[0] == "user_id" {
+				cb.user = props[1]
+			} else if props[0] == "session_id" {
+				cb.sessionId = props[1]
+			} else {
+				cb.headers[props[0]] = props[1]
+			}
+		}
+	}
+	fmt.Println(cb)
+	return cb, nil
+}
+
+func (cb *BaseBuilder) Build(ctx context.Context) (*grpc.ClientConn, error) {
+	var opts []grpc.DialOption
+
+	opts = append(opts, grpc.WithAuthority(cb.host))
+	if cb.token == "" {
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	} else {
+		// Note: On the Windows platform, use of x509.SystemCertPool() requires
+		// go version 1.18 or higher.
+		systemRoots, err := x509.SystemCertPool()
+		if err != nil {
+			return nil, err
+		}
+		cred := credentials.NewTLS(&tls.Config{
+			RootCAs: systemRoots,
+		})
+		opts = append(opts, grpc.WithTransportCredentials(cred))
+		ts := oauth2.StaticTokenSource(&oauth2.Token{
+			AccessToken: cb.token,
+			TokenType:   "bearer",
+		})
+		opts = append(opts, grpc.WithPerRPCCredentials(oauth.TokenSource{TokenSource: ts}))
+	}
+
+	remote := fmt.Sprintf("%v:%v", cb.host, cb.port)
+	conn, err := grpc.NewClient(remote, opts...)
+	if err != nil {
+		return nil, sparkerrors.WithType(fmt.Errorf("failed to connect to remote %s: %w",
+			remote, err), sparkerrors.ConnectionError)
+	}
+	return conn, nil
+}
+
+/*func NewSparkSQlWithChannel(ip string, port int, args map[string]string) (*SparkSQL, error) {
 	var (
 		param  string
 		remote = fmt.Sprintf("sc://%s:%d", ip, port)
+	)
+
+	builder, err := channel.NewBuilder(remote)
+	if err != nil {
+		return nil, err
+	}
+	if len(args) > 0 {
+
+	}
+
+	return &SparkSQL{}
+}*/
+
+func NewSparkSQL(ip string, port int, args ...map[string]string) (*SparkSQL, error) {
+	var (
+		param    string
+		remote   = fmt.Sprintf("sc://%s:%d", ip, port)
+		builder  *BaseBuilder
+		sparkSQL sql.SparkSession
+		err      error
 	)
 	if len(args) > 0 && len(args[0]) > 0 {
 		param = "/"
@@ -37,7 +176,15 @@ func NewSparkSQL(ip string, port int, args ...map[string]string) (*SparkSQL, err
 		remote += param
 	}
 	ctx := context.Background()
-	sparkSQL, err := sql.NewSessionBuilder().Remote(remote).Build(ctx)
+	color.Blue(remote)
+	if len(args) > 0 {
+		builder, err = NewBuilder(remote)
+		if err != nil {
+			return nil, err
+		}
+		sparkSQL, err = sql.NewSessionBuilder().WithChannelBuilder(builder).Build(ctx)
+	}
+	sparkSQL, err = sql.NewSessionBuilder().Remote(remote).Build(ctx)
 	if err != nil {
 		return nil, err
 	}

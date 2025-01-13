@@ -3,15 +3,21 @@ package conn
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/spark-connect-go/v35/spark/sql"
 	"github.com/apache/spark-connect-go/v35/spark/sql/types"
+	"github.com/apache/spark-connect-go/v35/spark/sql/utils"
 	"github.com/google/uuid"
 	"reflect"
 	"testing"
 	"time"
 )
 
+// keytool -genkeypair -alias server -keyalg RSA -keysize 2048 -keystore keystore.jks -storepass violetEvaTest -keypass violetEvaTest
+// keytool -export -alias server -file server.crt -keystore keystore.jks -storepass violetEvaTest
+// keytool -import -alias ca -file ca.crt -keystore truststore.jks -storepass violetEvaTest
 type Water struct {
 	Word  string    `json:"word" spark:"word_name"`
 	Sale  float32   `json:"sale" spark:"sale_name"`
@@ -21,10 +27,21 @@ type Water struct {
 
 func TestDFToMap(t *testing.T) {
 	ctx := context.Background()
-	sql, err := NewSparkSQL("127.0.0.1", 15002)
+	params := make(map[string]string)
+	token := "a0d0f8i:VrCL1CkjtTt5WxfuyiFeOA=="
+	toString := base64.StdEncoding.EncodeToString([]byte(token))
+	params["token"] = toString
+	params["user_id"] = "a0d0f8i"
+	params["session_id"] = uuid.New().String()
+	sql, err := NewSparkSQL("127.0.0.1", 15002, params)
 	if err != nil {
 		t.Fatal(err)
 	}
+	/*build, err2 := sql.NewSessionBuilder().Remote("sc://127.0.0.1:15002").Build(ctx)
+	if err2 != nil {
+		t.Error(err2)
+	}*/
+	utils.WarnOnError(sql.Stop, func(err error) {})
 	var ws []Water
 	for i := 0; i < 10; i++ {
 		var w Water
@@ -120,12 +137,16 @@ func TestMapToDF(t *testing.T) {
 func TestConn(t *testing.T) {
 	param := map[string]string{}
 	param["token"] = "abckef"
-	sql, err := NewSparkSQL("127.0.0.1", 15002, param)
+	/*sql, err := NewSparkSQL("127.0.0.1", 15002, 5, param)
 	if err != nil {
 		t.Fatal(err)
+	}*/
+	build, err2 := sql.NewSessionBuilder().Remote("sc://127.0.0.1:9181/;apikey=secret-key").Build(context.Background())
+	if err2 != nil {
+		t.Fatal(err2)
 	}
 	//frame, err := sql.SS.Sql(context.Background(), "select 'apple' as word, cast(123.22 as decimal(38,18)) as count union all select 'orange' as word, cast(456.11 as decimal(38,18)) as count")
-	frame, err := sql.Sql(context.Background(), "select 'apple' as word,123.11 as count union all select 'orange' as word, 456.22 as count")
+	frame, err := build.Sql(context.Background(), "select 'apple' as word,123.11 as count union all select 'orange' as word, 456.22 as count")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +176,7 @@ func TestConn(t *testing.T) {
 		}
 		rows = append(rows, record)
 		if (index+1)%2 == 0 {
-			dataframe, err := sql.CreateDataFrame(context.Background(), rows, schema)
+			dataframe, err := build.CreateDataFrame(context.Background(), rows, schema)
 			if err != nil {
 				t.Fatal(err)
 			}
