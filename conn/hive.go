@@ -80,16 +80,16 @@ func (hc *HiveConn) kerberosAuthentication() error {
 	return nil
 }
 
-type conn struct {
+type hiveConnection struct {
 	conn *gohive.Connection
 	err  error
 }
 
-func (hci *HiveConnInformation) hiveConn(address Address) chan conn {
-	ch := make(chan conn)
+func (hci *HiveConnInformation) hiveConn(address Address) chan hiveConnection {
+	ch := make(chan hiveConnection)
 	go func() {
 		hiveConn, err := gohive.Connect(address.Host, address.Port, hci.Auth, hci.Configuration)
-		ch <- conn{hiveConn, err}
+		ch <- hiveConnection{hiveConn, err}
 	}()
 	return ch
 }

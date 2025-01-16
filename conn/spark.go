@@ -10,12 +10,9 @@ import (
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/memory"
-	"github.com/apache/spark-connect-go/v35/spark/client/channel"
 	"github.com/apache/spark-connect-go/v35/spark/sparkerrors"
 	"github.com/apache/spark-connect-go/v35/spark/sql"
 	"github.com/apache/spark-connect-go/v35/spark/sql/types"
-	"github.com/fatih/color"
-	"github.com/google/uuid"
 	"github.com/violet-eva-01/datalake/util"
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
@@ -33,158 +30,40 @@ import (
 
 type SparkSQL struct {
 	sql.SparkSession
-	ctx context.Context
+	ctx     context.Context
+	builder *BaseBuilder
 }
 
-type BaseBuilder struct {
-	channel.BaseBuilder
-	host      string
-	port      int
-	token     string
-	user      string
-	headers   map[string]string
-	sessionId string
-}
-
-func NewBuilder(connection string) (*BaseBuilder, error) {
-	u, err := url.Parse(connection)
-	if err != nil {
-		return nil, err
-	}
-
-	if u.Hostname() == "" {
-		return nil, sparkerrors.WithType(errors.New("URL must contain a hostname"), sparkerrors.InvalidInputError)
-	}
-
-	if u.Scheme != "sc" {
-		return nil, sparkerrors.WithType(errors.New("URL schema must be set to `sc`"), sparkerrors.InvalidInputError)
-	}
-
-	port := 15002
-	host := u.Host
-	// Check if the host part of the URL contains a port and extract.
-	if strings.Contains(u.Host, ":") {
-		// We can ignore the error here already since the url parsing
-		// raises the error about invalid port.
-		hostStr, portStr, _ := net.SplitHostPort(u.Host)
-		host = hostStr
-		if len(portStr) != 0 {
-			port, err = strconv.Atoi(portStr)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	// Validate that the URL path is empty or follows the right format.
-	if u.Path != "" && !strings.HasPrefix(u.Path, "/;") {
-		return nil, sparkerrors.WithType(
-			fmt.Errorf("the URL path (%v) must be empty or have a proper parameter syntax", u.Path),
-			sparkerrors.InvalidInputError)
-	}
-
-	cb := &BaseBuilder{
-		host:      host,
-		port:      port,
-		headers:   make(map[string]string),
-		sessionId: uuid.NewString(),
-	}
-	elements := strings.Split(u.Path, ";")
-	for _, e := range elements {
-		props := strings.Split(e, "=")
-		if len(props) == 2 {
-			if props[0] == "token" {
-				cb.token = props[1]
-			} else if props[0] == "user_id" {
-				cb.user = props[1]
-			} else if props[0] == "session_id" {
-				cb.sessionId = props[1]
-			} else {
-				cb.headers[props[0]] = props[1]
-			}
-		}
-	}
-	fmt.Println(cb)
-	return cb, nil
-}
-
-func (cb *BaseBuilder) Build(ctx context.Context) (*grpc.ClientConn, error) {
-	var opts []grpc.DialOption
-
-	opts = append(opts, grpc.WithAuthority(cb.host))
-	if cb.token == "" {
-		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	} else {
-		// Note: On the Windows platform, use of x509.SystemCertPool() requires
-		// go version 1.18 or higher.
-		systemRoots, err := x509.SystemCertPool()
-		if err != nil {
-			return nil, err
-		}
-		cred := credentials.NewTLS(&tls.Config{
-			RootCAs: systemRoots,
-		})
-		opts = append(opts, grpc.WithTransportCredentials(cred))
-		ts := oauth2.StaticTokenSource(&oauth2.Token{
-			AccessToken: cb.token,
-			TokenType:   "bearer",
-		})
-		opts = append(opts, grpc.WithPerRPCCredentials(oauth.TokenSource{TokenSource: ts}))
-	}
-
-	remote := fmt.Sprintf("%v:%v", cb.host, cb.port)
-	conn, err := grpc.NewClient(remote, opts...)
-	if err != nil {
-		return nil, sparkerrors.WithType(fmt.Errorf("failed to connect to remote %s: %w",
-			remote, err), sparkerrors.ConnectionError)
-	}
-	return conn, nil
-}
-
-/*func NewSparkSQlWithChannel(ip string, port int, args map[string]string) (*SparkSQL, error) {
-	var (
-		param  string
-		remote = fmt.Sprintf("sc://%s:%d", ip, port)
-	)
-
-	builder, err := channel.NewBuilder(remote)
-	if err != nil {
-		return nil, err
-	}
-	if len(args) > 0 {
-
-	}
-
-	return &SparkSQL{}
-}*/
-
-func NewSparkSQL(ip string, port int, args ...map[string]string) (*SparkSQL, error) {
+func NewSparkSQL(ip string, port int, args map[string]string, ctxL ...context.Context) (*SparkSQL, error) {
 	var (
 		param    string
 		remote   = fmt.Sprintf("sc://%s:%d", ip, port)
 		builder  *BaseBuilder
 		sparkSQL sql.SparkSession
 		err      error
+		ctx      context.Context
 	)
-	if len(args) > 0 && len(args[0]) > 0 {
+
+	if len(ctxL) > 0 {
+		ctx = ctxL[0]
+	} else {
+		ctx = context.Background()
+	}
+
+	if args != nil && len(args) > 0 {
 		param = "/"
-		for _, arg := range args {
-			for k, v := range arg {
-				param += fmt.Sprintf(";%s=%s", k, v)
-			}
+		for k, v := range args {
+			param += fmt.Sprintf(";%s=%s", k, v)
 		}
 		remote += param
-	}
-	ctx := context.Background()
-	color.Blue(remote)
-	if len(args) > 0 {
-		builder, err = NewBuilder(remote)
+		builder, err = newBuilder(remote, args)
 		if err != nil {
 			return nil, err
 		}
 		sparkSQL, err = sql.NewSessionBuilder().WithChannelBuilder(builder).Build(ctx)
+	} else {
+		sparkSQL, err = sql.NewSessionBuilder().Remote(remote).Build(ctx)
 	}
-	sparkSQL, err = sql.NewSessionBuilder().Remote(remote).Build(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -195,20 +74,29 @@ func NewSparkSQL(ip string, port int, args ...map[string]string) (*SparkSQL, err
 	return &SparkSQL{
 		sparkSQL,
 		context.Background(),
+		builder,
 	}, nil
+}
+
+func (s *SparkSQL) Stop() error {
+	if s.builder != nil && s.builder.conn != nil {
+		err := s.builder.conn.Close()
+		return err
+	}
+	return nil
 }
 
 func (s *SparkSQL) Exec(query string) (sql.DataFrame, error) {
 	return s.Sql(s.ctx, query)
 }
 
-// StructToStructType
+// structToStructType
 // @Description: isTag is false , get struct elem name assign to structField name. isTag is true  , get json tag name assign to structField name.
 // @param v
 // @param isTag
 // @return *types.StructType
 // @return error
-func StructToStructType(v interface{}, isRename bool) (*types.StructType, error) {
+func structToStructType(v interface{}, isRename bool) (*types.StructType, error) {
 	var (
 		fields    []types.StructField
 		sparkTags map[string]string
@@ -274,12 +162,12 @@ func StructToStructType(v interface{}, isRename bool) (*types.StructType, error)
 	}, nil
 }
 
-// SAToTSA
+// sAToTSA
 // @Description: any slice  -> any 2D slicing
 // @param structType
 // @param data
 // @return [][]interface{}
-func SAToTSA(structType *types.StructType, data ...any) [][]interface{} {
+func sAToTSA(structType *types.StructType, data ...any) [][]interface{} {
 	length := len(structType.Fields)
 	var rows [][]interface{}
 	for _, row := range data {
@@ -322,12 +210,12 @@ func (s *SparkSQL) CreateDataFrameFromStruct(data any, isRename bool) (sql.DataF
 	if len(rows) == 0 {
 		return nil, fmt.Errorf("no data")
 	}
-	structType, err := StructToStructType(rows[0], isRename)
+	structType, err := structToStructType(rows[0], isRename)
 	if err != nil {
 		return nil, err
 	}
-	sliceAny := SAToTSA(structType, rows...)
-	return s.CreateDataFrame(s.ctx, sliceAny, structType)
+	sliceAny := sAToTSA(structType, rows...)
+	return s.createDataFrame(s.ctx, sliceAny, structType)
 }
 
 func convStructDoubleTags(data any, tagName1, tagName2 string, splitKey ...[2]string) map[string]string {
@@ -425,7 +313,7 @@ func mapToSliceAny(structType *types.StructType, v interface{}, isTag bool, isRe
 // @return sql.DataFrame
 // @return error
 func (s *SparkSQL) CreateDataFrameFromMap(v interface{}, isTag bool, isRename bool, data ...map[string]interface{}) (sql.DataFrame, error) {
-	structType, err := StructToStructType(v, isRename)
+	structType, err := structToStructType(v, isRename)
 	if err != nil {
 		return nil, err
 	}
@@ -433,10 +321,10 @@ func (s *SparkSQL) CreateDataFrameFromMap(v interface{}, isTag bool, isRename bo
 	if err != nil {
 		return nil, err
 	}
-	return s.CreateDataFrame(s.ctx, sliceAny, structType)
+	return s.createDataFrame(s.ctx, sliceAny, structType)
 }
 
-func (s *SparkSQL) CreateDataFrame(ctx context.Context, data [][]any, schema *types.StructType) (sql.DataFrame, error) {
+func (s *SparkSQL) createDataFrame(ctx context.Context, data [][]any, schema *types.StructType) (sql.DataFrame, error) {
 	pool := memory.NewGoAllocator()
 	// Convert the data into an Arrow Table
 	arrowSchema := arrow.NewSchema(schema.ToArrowType().Fields(), nil)
@@ -509,7 +397,9 @@ func (s *SparkSQL) ExecQuery(query string) (output []map[string]interface{}, err
 	if err != nil {
 		return
 	}
-
+	defer func() {
+		frame = nil
+	}()
 	collect, err = frame.Collect(s.ctx)
 	if err != nil {
 		return
@@ -523,7 +413,6 @@ func (s *SparkSQL) ExecQuery(query string) (output []map[string]interface{}, err
 		}
 		rows = append(rows, record)
 	}
-
 	return
 }
 
@@ -538,6 +427,9 @@ func (s *SparkSQL) ExecQueryToMapString(query string) (output []map[string]strin
 	if err != nil {
 		return
 	}
+	defer func() {
+		frame = nil
+	}()
 
 	collect, err = frame.Collect(s.ctx)
 	if err != nil {
@@ -556,8 +448,10 @@ func (s *SparkSQL) ExecQueryToMapString(query string) (output []map[string]strin
 	return
 }
 
-func (s *SparkSQL) DFCollectBatchProcessingForString(df sql.DataFrame, batchSize int, function ...func(input []map[string]string) error) (err error) {
-
+func (s *SparkSQL) dFCollectBatchProcessingForString(df sql.DataFrame, batchSize int, function ...func(input []map[string]string) error) (err error) {
+	defer func() {
+		df = nil
+	}()
 	var collect []types.Row
 
 	collect, err = df.Collect(s.ctx)
@@ -605,11 +499,13 @@ func (s *SparkSQL) ExecQueryBatchProcessingForString(query string, batchSize int
 		return err
 	}
 
-	return s.DFCollectBatchProcessingForString(frame, batchSize, function...)
+	return s.dFCollectBatchProcessingForString(frame, batchSize, function...)
 }
 
-func (s *SparkSQL) DFCollectBatchProcessingForInterface(df sql.DataFrame, batchSize int, function ...func(input []map[string]interface{}) error) (err error) {
-
+func (s *SparkSQL) dFCollectBatchProcessingForInterface(df sql.DataFrame, batchSize int, function ...func(input []map[string]interface{}) error) (err error) {
+	defer func() {
+		df = nil
+	}()
 	var collect []types.Row
 
 	collect, err = df.Collect(s.ctx)
@@ -644,6 +540,7 @@ func (s *SparkSQL) DFCollectBatchProcessingForInterface(df sql.DataFrame, batchS
 		rows = rows[:0]
 	}
 
+	df = nil
 	return
 }
 
@@ -658,5 +555,135 @@ func (s *SparkSQL) ExecQueryBatchProcessingForInterface(query string, batchSize 
 		return err
 	}
 
-	return s.DFCollectBatchProcessingForInterface(frame, batchSize, function...)
+	return s.dFCollectBatchProcessingForInterface(frame, batchSize, function...)
+}
+
+type BaseBuilder struct {
+	host      string
+	port      int
+	token     string
+	user      string
+	headers   map[string]string
+	sessionId string
+	conn      *grpc.ClientConn
+}
+
+func (cb *BaseBuilder) Host() string {
+	return cb.host
+}
+
+func (cb *BaseBuilder) Port() int {
+	return cb.port
+}
+
+func (cb *BaseBuilder) Token() string {
+	return cb.token
+}
+
+func (cb *BaseBuilder) User() string {
+	return cb.user
+}
+
+func (cb *BaseBuilder) Headers() map[string]string {
+	return cb.headers
+}
+
+func (cb *BaseBuilder) SessionId() string {
+	return cb.sessionId
+}
+
+func newBuilder(connection string, args map[string]string) (*BaseBuilder, error) {
+	u, err := url.Parse(connection)
+	if err != nil {
+		return nil, err
+	}
+
+	if u.Hostname() == "" {
+		return nil, sparkerrors.WithType(errors.New("URL must contain a hostname"), sparkerrors.InvalidInputError)
+	}
+
+	if u.Scheme != "sc" {
+		return nil, sparkerrors.WithType(errors.New("URL schema must be set to `sc`"), sparkerrors.InvalidInputError)
+	}
+
+	port := 15002
+	host := u.Host
+	// Check if the host part of the URL contains a port and extract.
+	if strings.Contains(u.Host, ":") {
+		// We can ignore the error here already since the url parsing
+		// raises the error about invalid port.
+		hostStr, portStr, _ := net.SplitHostPort(u.Host)
+		host = hostStr
+		if len(portStr) != 0 {
+			port, err = strconv.Atoi(portStr)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	// Validate that the URL path is empty or follows the right format.
+	if u.Path != "" && !strings.HasPrefix(u.Path, "/;") {
+		return nil, sparkerrors.WithType(
+			fmt.Errorf("the URL path (%v) must be empty or have a proper parameter syntax", u.Path),
+			sparkerrors.InvalidInputError)
+	}
+
+	cb := &BaseBuilder{
+		host: host,
+		port: port,
+	}
+
+	var headers = make(map[string]string)
+	for k, v := range args {
+		switch k {
+		case "user_id":
+			cb.user = v
+		case "session_d":
+			cb.sessionId = v
+		case "token":
+			cb.token = v
+		default:
+			headers[k] = v
+		}
+	}
+	cb.headers = headers
+
+	return cb, nil
+}
+
+func (cb *BaseBuilder) Build(ctx context.Context) (*grpc.ClientConn, error) {
+	var (
+		opts []grpc.DialOption
+	)
+
+	opts = append(opts, grpc.WithAuthority(cb.host))
+	if cb.token == "" {
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	} else {
+		// Note: On the Windows platform, use of x509.SystemCertPool() requires
+		// go version 1.18 or higher.
+		systemRoots, err := x509.SystemCertPool()
+		if err != nil {
+			return nil, err
+		}
+		cred := credentials.NewTLS(&tls.Config{
+			RootCAs: systemRoots,
+		})
+		opts = append(opts, grpc.WithTransportCredentials(cred))
+		ts := oauth2.StaticTokenSource(&oauth2.Token{
+			AccessToken: cb.token,
+			TokenType:   "bearer",
+		})
+		opts = append(opts, grpc.WithPerRPCCredentials(oauth.TokenSource{TokenSource: ts}))
+	}
+
+	remote := fmt.Sprintf("%v:%v", cb.host, cb.port)
+	conn, err := grpc.NewClient(remote, opts...)
+	if err != nil {
+		return nil, sparkerrors.WithType(fmt.Errorf("failed to connect to remote %s: %w",
+			remote, err), sparkerrors.ConnectionError)
+	}
+	cb.conn = conn
+	return conn, nil
 }

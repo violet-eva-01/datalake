@@ -3,21 +3,16 @@ package conn
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/spark-connect-go/v35/spark/sql"
 	"github.com/apache/spark-connect-go/v35/spark/sql/types"
-	"github.com/apache/spark-connect-go/v35/spark/sql/utils"
 	"github.com/google/uuid"
 	"reflect"
 	"testing"
 	"time"
 )
 
-// keytool -genkeypair -alias server -keyalg RSA -keysize 2048 -keystore keystore.jks -storepass violetEvaTest -keypass violetEvaTest
-// keytool -export -alias server -file server.crt -keystore keystore.jks -storepass violetEvaTest
-// keytool -import -alias ca -file ca.crt -keystore truststore.jks -storepass violetEvaTest
 type Water struct {
 	Word  string    `json:"word" spark:"word_name"`
 	Sale  float32   `json:"sale" spark:"sale_name"`
@@ -28,20 +23,20 @@ type Water struct {
 func TestDFToMap(t *testing.T) {
 	ctx := context.Background()
 	params := make(map[string]string)
-	token := "a0d0f8i:VrCL1CkjtTt5WxfuyiFeOA=="
-	toString := base64.StdEncoding.EncodeToString([]byte(token))
-	params["token"] = toString
-	params["user_id"] = "a0d0f8i"
-	params["session_id"] = uuid.New().String()
+	params["username"] = "violet-eva"
+	params["username_auth"] = "5TRyuMpZClX4bSiZ2eAapg"
+	// 127.0.0.1
+	params["address_auth"] = "liIgrWj6TMHTW9hTiWLYNQ"
 	sql, err := NewSparkSQL("127.0.0.1", 15002, params)
 	if err != nil {
 		t.Fatal(err)
 	}
-	/*build, err2 := sql.NewSessionBuilder().Remote("sc://127.0.0.1:15002").Build(ctx)
-	if err2 != nil {
-		t.Error(err2)
-	}*/
-	utils.WarnOnError(sql.Stop, func(err error) {})
+	defer func() {
+		err = sql.Stop()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
 	var ws []Water
 	for i := 0; i < 10; i++ {
 		var w Water
@@ -62,7 +57,7 @@ func TestDFToMap(t *testing.T) {
 		t.Fatal(err)
 	}
 	fmt.Println(count)
-	name, err := frame.DropByName(ctx, "w1")
+	name, err := frame.DropByName(ctx, "word_name")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,19 +65,6 @@ func TestDFToMap(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	toArrow, err := frame.ToArrow(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rows, err := types.ReadArrowTableToRows(*toArrow)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println(rows[0].Values())
-	/*err = frame.Show(context.Background(), 100, false)
-	if err != nil {
-		t.Fatal(err)
-	}*/
 }
 
 func TestStructToDF(t *testing.T) {
@@ -131,6 +113,8 @@ func TestMapToDF(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	frame.Show(context.Background(), 100, false)
+	frame = nil
 	frame.Show(context.Background(), 100, false)
 }
 
