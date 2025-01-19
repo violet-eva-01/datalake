@@ -52,7 +52,9 @@ func TestDFToMap(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	count, err := frame.Count(ctx)
+	timeout, cancelFunc := context.WithTimeout(context.Background(), 1)
+	defer cancelFunc()
+	count, err := frame.Count(timeout)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -162,10 +162,10 @@ func RemoveRepeatElementAndToLower(list []string) []string {
 	return tempList
 }
 
-func ListSplit(input []string, length int) map[int][]string {
+func SListSplit(input []string, length int) [][]string {
 
 	times := len(input) / length // 10001 / 2001 = 4
-	output := make(map[int][]string, times+1)
+	output := make([][]string, times+1)
 	residual := len(input) % length // 10001 % 2001 = 1997
 
 	if times == 0 || (times == 1 && residual == 0) {
@@ -187,7 +187,57 @@ func ListSplit(input []string, length int) map[int][]string {
 			}
 		}
 	}
+	return output
+}
+func MapSListSplit(input []map[string]string, length int) [][]map[string]string {
+	times := len(input) / length // 10001 / 2001 = 4
+	output := make([][]map[string]string, times+1)
+	residual := len(input) % length // 10001 % 2001 = 1997
 
+	if times == 0 || (times == 1 && residual == 0) {
+		output[0] = input
+	} else {
+		if residual == 0 {
+			times -= 1
+		}
+		starLen := 0
+		endLen := length
+		for index := 0; index <= times; index++ {
+			output[index] = input[starLen:endLen]
+			starLen += length
+			if residual != 0 && index == times-1 {
+				endLen += residual
+			} else {
+				endLen += length
+			}
+		}
+	}
+	return output
+}
+
+func MapIListSplit(input []map[string]interface{}, length int) [][]map[string]interface{} {
+	times := len(input) / length // 10001 / 2001 = 4
+	output := make([][]map[string]interface{}, times+1)
+	residual := len(input) % length // 10001 % 2001 = 1997
+
+	if times == 0 || (times == 1 && residual == 0) {
+		output[0] = input
+	} else {
+		if residual == 0 {
+			times -= 1
+		}
+		starLen := 0
+		endLen := length
+		for index := 0; index <= times; index++ {
+			output[index] = input[starLen:endLen]
+			starLen += length
+			if residual != 0 && index == times-1 {
+				endLen += residual
+			} else {
+				endLen += length
+			}
+		}
+	}
 	return output
 }
 
