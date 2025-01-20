@@ -176,7 +176,7 @@ func SListSplit(input []string, length int) [][]string {
 	} else {
 		starLen := 0
 		endLen := length
-		for index := 0; index <= times; index++ {
+		for index := 0; index < times; index++ {
 			output[index] = input[starLen:endLen]
 			starLen += length
 			if residual != 0 && index == times-1 {
@@ -202,7 +202,7 @@ func MapSListSplit(input []map[string]string, length int) [][]map[string]string 
 	} else {
 		starLen := 0
 		endLen := length
-		for index := 0; index <= times; index++ {
+		for index := 0; index < times; index++ {
 			output[index] = input[starLen:endLen]
 			starLen += length
 			if residual != 0 && index == times-1 {
@@ -228,7 +228,7 @@ func MapIListSplit(input []map[string]interface{}, length int) [][]map[string]in
 	} else {
 		starLen := 0
 		endLen := length
-		for index := 0; index <= times; index++ {
+		for index := 0; index < times; index++ {
 			output[index] = input[starLen:endLen]
 			starLen += length
 			if residual != 0 && index == times-1 {
