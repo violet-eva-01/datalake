@@ -34,7 +34,7 @@ type SparkSQL struct {
 	builder *BaseBuilder
 }
 
-func NewSparkSQL(ip string, port int, args map[string]string, ctxL ...context.Context) (*SparkSQL, error) {
+func connSparkConnServer(ip string, port int, args map[string]string, ctxL ...context.Context) (*SparkSQL, error) {
 	var (
 		param    string
 		remote   = fmt.Sprintf("sc://%s:%d", ip, port)
@@ -73,9 +73,24 @@ func NewSparkSQL(ip string, port int, args map[string]string, ctxL ...context.Co
 	}
 	return &SparkSQL{
 		sparkSQL,
-		context.Background(),
+		ctx,
 		builder,
 	}, nil
+}
+
+func NewSparkSQL(ip string, port int, args map[string]string, retryTime int, retryInterval time.Duration, ctxL ...context.Context) (conn *SparkSQL, err error) {
+	for i := 0; i < retryTime; i++ {
+		conn, err = connSparkConnServer(ip, port, args, ctxL...)
+		if err == nil {
+			if i != retryTime-1 {
+				time.Sleep(retryInterval * time.Second)
+				continue
+			} else {
+				return nil, fmt.Errorf("connect spark connect server failed ,err is %s", err)
+			}
+		}
+	}
+	return
 }
 
 func (s *SparkSQL) Stop() error {

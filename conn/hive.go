@@ -46,27 +46,27 @@ type HiveConn struct {
 	KA            *KrbAuth
 	HCI           *HiveConnInformation
 	Conn          *gohive.Connection
-	RetryCount    int
+	RetryTime     int
 	RetryInterval time.Duration
 	QueryTimeout  int
 }
 
-func NewHiveConn(retryCount int, retryInterval time.Duration, queryTimeout int, information *HiveConnInformation, auth *KrbAuth) *HiveConn {
+func NewHiveConn(retryTime int, retryInterval time.Duration, queryTimeout int, information *HiveConnInformation, auth *KrbAuth) *HiveConn {
 	return &HiveConn{
 		KA:            auth,
 		HCI:           information,
-		RetryCount:    retryCount,
+		RetryTime:     retryTime,
 		RetryInterval: retryInterval,
 		QueryTimeout:  queryTimeout,
 	}
 }
 
 func (hc *HiveConn) kerberosAuthentication() error {
-	for i := 0; i < hc.RetryCount; i++ {
+	for i := 0; i < hc.RetryTime; i++ {
 		err := hc.KA.Kinit()
 		if err != nil {
 			time.Sleep(hc.RetryInterval * time.Second)
-			if i == hc.RetryCount-1 {
+			if i == hc.RetryTime-1 {
 				err = fmt.Errorf("kinit failed, err is: %s", err)
 				color.Red(err.Error())
 				return err
@@ -130,13 +130,13 @@ func (hc *HiveConn) GetHiveConn() (err error) {
 	}
 
 	var hiveServer2Hosts = hc.HCI.Addresses[:]
-	for j := 0; j < hc.RetryCount; j++ {
+	for j := 0; j < hc.RetryTime; j++ {
 		i := rand.Intn(len(hiveServer2Hosts))
 		hiveServer2Host := hiveServer2Hosts[i]
 		hiveServer2Hosts = append(hiveServer2Hosts[:i], hiveServer2Hosts[i+1:]...)
 		hc.Conn, err = hc.HCI.getHiveConn(hiveServer2Host)
 		if err != nil {
-			if j < hc.RetryCount-1 {
+			if j < hc.RetryTime-1 {
 				time.Sleep(hc.RetryInterval * time.Second)
 				continue
 			} else {

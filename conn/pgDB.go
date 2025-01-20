@@ -46,7 +46,7 @@ func connPGDB(user, passwd, host, dbname string, port int, opts ...string) (conn
 	return
 }
 
-func InitPGConn(user, passwd, host, dbname string, port, retryCount, retryInterval, queryTimeout int, opts ...string) (pdb *PgDB, err error) {
+func InitPGConn(user, passwd, host, dbname string, port, retryTime, retryInterval, queryTimeout int, opts ...string) (pdb *PgDB, err error) {
 	defer func() {
 		if result := recover(); result != nil {
 			err = fmt.Errorf("panic: %v", result)
@@ -57,10 +57,10 @@ func InitPGConn(user, passwd, host, dbname string, port, retryCount, retryInterv
 		pgConn *pgxpool.Conn
 	)
 
-	for i := 0; i < retryCount; i++ {
+	for i := 0; i < retryTime; i++ {
 		pgConn, err = connPGDB(user, passwd, host, dbname, port, opts...)
 		if err != nil {
-			if i != retryCount-1 {
+			if i != retryTime-1 {
 				time.Sleep(time.Duration(retryInterval) * time.Second)
 				continue
 			} else {

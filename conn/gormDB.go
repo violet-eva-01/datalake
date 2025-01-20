@@ -18,7 +18,7 @@ const (
 	pgDSN    = "host=%s user=%s password=%s dbname=%s port=%d %s"
 )
 
-func connGormDB(dbType, dbName, user, passwd, host string, port, maxIdleConn, maxOpenConn, maxLifetime int, opts ...string) (db *gorm.DB, err error) {
+func getGormDB(dbType, dbName, user, passwd, host string, port, maxIdleConn, maxOpenConn, maxLifetime int, opts ...string) (db *gorm.DB, err error) {
 
 	var (
 		sqlDB *sql.DB
@@ -69,7 +69,7 @@ func connGormDB(dbType, dbName, user, passwd, host string, port, maxIdleConn, ma
 	return
 }
 
-func InitGormDB(dbType, dbName, user, passwd, host string, port, retryCount, retryInterval, maxIdleConn, maxOpenConn, maxLifetime int, opts ...string) (gormDB *gorm.DB, err error) {
+func InitGormDB(dbType, dbName, user, passwd, host string, port, retryTime int, retryInterval time.Duration, maxIdleConn, maxOpenConn, maxLifetime int, opts ...string) (gormDB *gorm.DB, err error) {
 
 	defer func() {
 		if result := recover(); result != nil {
@@ -77,11 +77,11 @@ func InitGormDB(dbType, dbName, user, passwd, host string, port, retryCount, ret
 		}
 	}()
 
-	for i := 0; i < retryCount; i++ {
-		gormDB, err = connGormDB(dbType, dbName, user, passwd, host, port, maxIdleConn, maxOpenConn, maxLifetime, opts...)
+	for i := 0; i < retryTime; i++ {
+		gormDB, err = getGormDB(dbType, dbName, user, passwd, host, port, maxIdleConn, maxOpenConn, maxLifetime, opts...)
 		if err != nil {
-			if i != retryCount-1 {
-				time.Sleep(time.Duration(retryInterval) * time.Second)
+			if i != retryTime-1 {
+				time.Sleep(retryInterval * time.Second)
 				continue
 			} else {
 				color.Red(fmt.Sprintf("connect %s DB failed ,err is %s", dbType, err))

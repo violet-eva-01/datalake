@@ -71,7 +71,7 @@ func connSQLDB(dbType, dbName, user, passwd, host string, port, maxIdleConn, max
 	return
 }
 
-func InitSQLDB(dbType, dbName, user, passwd, host string, port, retryCount, retryInterval, queryTimeout, maxIdleConn, maxOpenConn, maxLifetime int, opts ...string) (sqlDB *SQLDB, err error) {
+func InitSQLDB(dbType, dbName, user, passwd, host string, port, retryTime int, retryInterval time.Duration, queryTimeout, maxIdleConn, maxOpenConn, maxLifetime int, opts ...string) (sqlDB *SQLDB, err error) {
 
 	defer func() {
 		if result := recover(); result != nil {
@@ -83,11 +83,11 @@ func InitSQLDB(dbType, dbName, user, passwd, host string, port, retryCount, retr
 		sdb *sql.DB
 	)
 
-	for i := 0; i < retryCount; i++ {
+	for i := 0; i < retryTime; i++ {
 		sdb, err = connSQLDB(dbType, dbName, user, passwd, host, port, maxIdleConn, maxOpenConn, maxLifetime, opts...)
 		if err != nil {
-			if i != retryCount-1 {
-				time.Sleep(time.Duration(retryInterval) * time.Second)
+			if i != retryTime-1 {
+				time.Sleep(retryInterval * time.Second)
 				continue
 			} else {
 				color.Red(fmt.Sprintf("connect %s DB failed ,err is %s", dbType, err))
