@@ -35,7 +35,7 @@ type StarRocks struct {
 	queryTimeout  time.Duration
 }
 
-func NewStarRocksAll(dbName, user, passwd, host string, port, feHttpPort, retryCount, retryInterval, queryTimeout, maxIdleConn, maxOpenConn, maxLifetime int, opts ...string) (*StarRocks, error) {
+func NewStarRocksAll(dbName, user, passwd, host string, port, feHttpPort, retryCount int, retryInterval time.Duration, queryTimeout, maxIdleConn, maxOpenConn, maxLifetime int, opts ...string) (*StarRocks, error) {
 	sqlDB, err := conn.InitSQLDB("mysql", dbName, user, passwd, host, port, retryCount, retryInterval, queryTimeout, maxIdleConn, maxOpenConn, maxLifetime, opts...)
 	if err != nil {
 		return nil, err
@@ -58,7 +58,7 @@ func NewStarRocksAll(dbName, user, passwd, host string, port, feHttpPort, retryC
 }
 
 func NewStarRocks(dbName, user, passwd, host string, timeout int, opts ...string) (*StarRocks, error) {
-	port, feHttpPort, retryCount, retryInterval, queryTimeout, maxIdleConn, maxOpenConn, maxLifetime := 9030, 8030, 3, 10, timeout, 2, 2, timeout
+	port, feHttpPort, retryCount, retryInterval, queryTimeout, maxIdleConn, maxOpenConn, maxLifetime := 9030, 8030, 3, time.Duration(10), timeout, 2, 2, timeout
 	sqlDB, err := conn.InitSQLDB("mysql", dbName, user, passwd, host, port, retryCount, retryInterval, queryTimeout, maxIdleConn, maxOpenConn, maxLifetime, opts...)
 	if err != nil {
 		return nil, err
