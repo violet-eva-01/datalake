@@ -164,17 +164,16 @@ func RemoveRepeatElementAndToLower(list []string) []string {
 
 func SListSplit(input []string, length int) [][]string {
 
-	times := len(input) / length // 10001 / 2001 = 4
-	output := make([][]string, times+1)
+	times := len(input) / length    // 10001 / 2001 = 4
 	residual := len(input) % length // 10001 % 2001 = 1997
+	if residual > 0 {
+		times += 1
+	}
+	output := make([][]string, times)
 
-	if times == 0 || (times == 1 && residual == 0) {
+	if times <= 1 {
 		output[0] = input
 	} else {
-		if residual == 0 {
-			times -= 1
-		}
-
 		starLen := 0
 		endLen := length
 		for index := 0; index <= times; index++ {
@@ -189,17 +188,18 @@ func SListSplit(input []string, length int) [][]string {
 	}
 	return output
 }
-func MapSListSplit(input []map[string]string, length int) [][]map[string]string {
-	times := len(input) / length // 10001 / 2001 = 4
-	output := make([][]map[string]string, times+1)
-	residual := len(input) % length // 10001 % 2001 = 1997
 
-	if times == 0 || (times == 1 && residual == 0) {
+func MapSListSplit(input []map[string]string, length int) [][]map[string]string {
+	times := len(input) / length    // 10001 / 2001 = 4
+	residual := len(input) % length // 10001 % 2001 = 1997
+	if residual > 0 {
+		times += 1
+	}
+	output := make([][]map[string]string, times)
+
+	if times <= 1 {
 		output[0] = input
 	} else {
-		if residual == 0 {
-			times -= 1
-		}
 		starLen := 0
 		endLen := length
 		for index := 0; index <= times; index++ {
@@ -216,16 +216,16 @@ func MapSListSplit(input []map[string]string, length int) [][]map[string]string 
 }
 
 func MapIListSplit(input []map[string]interface{}, length int) [][]map[string]interface{} {
-	times := len(input) / length // 10001 / 2001 = 4
-	output := make([][]map[string]interface{}, times+1)
+	times := len(input) / length    // 10001 / 2001 = 4
 	residual := len(input) % length // 10001 % 2001 = 1997
+	if residual > 0 {
+		times += 1
+	}
+	output := make([][]map[string]interface{}, times)
 
-	if times == 0 || (times == 1 && residual == 0) {
+	if times <= 1 {
 		output[0] = input
 	} else {
-		if residual == 0 {
-			times -= 1
-		}
 		starLen := 0
 		endLen := length
 		for index := 0; index <= times; index++ {
