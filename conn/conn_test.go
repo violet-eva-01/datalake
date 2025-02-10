@@ -27,7 +27,7 @@ func TestDFToMap(t *testing.T) {
 	params["username_auth"] = "5TRyuMpZClX4bSiZ2eAapg"
 	// 127.0.0.1
 	params["address_auth"] = "liIgrWj6TMHTW9hTiWLYNQ"
-	sql, err := NewSparkSQL("127.0.0.1", 15002, params)
+	sql, err := NewSparkSQL("127.0.0.1", 15002, params, 3, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestStructToDF(t *testing.T) {
 	param["user_id"] = "aldenDong"
 	param["session_id"] = uuid.NewString()
 	fmt.Println(param)
-	sql, err := NewSparkSQL("127.0.0.1", 15002, param)
+	sql, err := NewSparkSQL("127.0.0.1", 15002, param, 3, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestStructToDF(t *testing.T) {
 func TestMapToDF(t *testing.T) {
 	param := map[string]string{}
 	param["token"] = "abckef"
-	sql, err := NewSparkSQL("127.0.0.1", 15002, param)
+	sql, err := NewSparkSQL("127.0.0.1", 15002, param, 3, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
