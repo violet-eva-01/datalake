@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="ALL" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="3f45ec5b-480a-42d5-868a-71ba20c1f766" name="更改" comment="">
+      <change beforePath="$PROJECT_DIR$/conn/conn_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/conn/conn_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/conn/spark.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Go File" />
+      </list>
+    </option>
+  </component>
+  <component name="GOROOT" url="file:///usr/local/go1.23.2" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;violet-eva-01&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/violet-eva-01/datalake.git&quot;,
+    &quot;accountId&quot;: &quot;bad399c2-eb7e-4e1b-850c-df179e0dfe36&quot;
+  }
+}</component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$USER_HOME$/go/pkg/mod/github.com/apache/spark-connect-go/v35@v35.0.0-20241107203614-5880ead055a6/spark/sql/sparksession.go" root0="SKIP_INSPECTION" />
+    <setting file="file://$USER_HOME$/go/pkg/mod/github.com/apache/spark-connect-go/v35@v35.0.0-20241107203614-5880ead055a6/spark/sql/types/arrow.go" root0="SKIP_INSPECTION" />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 5
+}</component>
+  <component name="ProjectId" id="2pCI8viP9ZHQh3tYr642pcMmcu0" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="1" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;DefaultGoTemplateProperty&quot;: &quot;Go File&quot;,
+    &quot;Go 测试.github.com/violet-eva-01/datalake/conn 中的 TestConn.executor&quot;: &quot;Run&quot;,
+    &quot;Go 测试.github.com/violet-eva-01/datalake/conn 中的 TestDFToMap.executor&quot;: &quot;Run&quot;,
+    &quot;Go 测试.github.com/violet-eva-01/datalake/conn 中的 TestGrpcurl.executor&quot;: &quot;Run&quot;,
+    &quot;Go 测试.github.com/violet-eva-01/datalake/conn 中的 TestMapToDF.executor&quot;: &quot;Run&quot;,
+    &quot;Go 测试.github.com/violet-eva-01/datalake/conn 中的 TestSpark.executor&quot;: &quot;Run&quot;,
+    &quot;Go 测试.github.com/violet-eva-01/datalake/conn 中的 TestStructToDF.executor&quot;: &quot;Run&quot;,
+    &quot;Go 测试.github.com/violet-eva-01/datalake/ranger 中的 TestNewRanger.executor&quot;: &quot;Run&quot;,
+    &quot;Go 测试.github.com/violet-eva-01/datalake/ranger 中的 TestRanger.executor&quot;: &quot;Run&quot;,
+    &quot;Go 测试.github.com/violet-eva-01/datalake/tencent 中的 TestName.executor&quot;: &quot;Run&quot;,
+    &quot;Go 测试.github.com/violet-eva-01/datalake/util 中的 TestWriteExcel.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
+    &quot;go.sdk.automatically.set&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/dongyuan&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;project.propVCSSupport.DirectoryMappings&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/sparkConnect" />
+      <recent name="$PROJECT_DIR$/spark" />
+      <recent name="$PROJECT_DIR$/StarRocks" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Go 测试.github.com/violet-eva-01/datalake/conn 中的 TestDFToMap">
+    <configuration name="github.com/violet-eva-01/datalake/conn 中的 TestConn" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="datalake" />
+      <working_directory value="$PROJECT_DIR$/conn" />
+      <root_directory value="$PROJECT_DIR$" />
+      <kind value="PACKAGE" />
+      <package value="github.com/violet-eva-01/datalake/conn" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$" />
+      <framework value="gotest" />
+      <pattern value="^\QTestConn\E$" />
+      <method v="2" />
+    </configuration>
+    <configuration name="github.com/violet-eva-01/datalake/conn 中的 TestDFToMap" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="datalake" />
+      <working_directory value="$PROJECT_DIR$/conn" />
+      <root_directory value="$PROJECT_DIR$" />
+      <kind value="PACKAGE" />
+      <package value="github.com/violet-eva-01/datalake/conn" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$" />
+      <framework value="gotest" />
+      <pattern value="^\QTestDFToMap\E$" />
+      <method v="2" />
+    </configuration>
+    <configuration name="github.com/violet-eva-01/datalake/conn 中的 TestMapToDF" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="datalake" />
+      <working_directory value="$PROJECT_DIR$/conn" />
+      <root_directory value="$PROJECT_DIR$" />
+      <kind value="PACKAGE" />
+      <package value="github.com/violet-eva-01/datalake/conn" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$" />
+      <framework value="gotest" />
+      <pattern value="^\QTestMapToDF\E$" />
+      <method v="2" />
+    </configuration>
+    <configuration name="github.com/violet-eva-01/datalake/conn 中的 TestSpark" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="datalake" />
+      <working_directory value="$PROJECT_DIR$/conn" />
+      <root_directory value="$PROJECT_DIR$" />
+      <kind value="PACKAGE" />
+      <package value="github.com/violet-eva-01/datalake/conn" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$" />
+      <framework value="gotest" />
+      <pattern value="^\QTestSpark\E$" />
+      <method v="2" />
+    </configuration>
+    <configuration name="github.com/violet-eva-01/datalake/util 中的 TestWriteExcel" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="datalake" />
+      <working_directory value="$PROJECT_DIR$/util" />
+      <root_directory value="$PROJECT_DIR$" />
+      <kind value="PACKAGE" />
+      <package value="github.com/violet-eva-01/datalake/util" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$" />
+      <framework value="gotest" />
+      <pattern value="^\QTestWriteExcel\E$" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Go 测试.github.com/violet-eva-01/datalake/conn 中的 TestDFToMap" />
+        <item itemvalue="Go 测试.github.com/violet-eva-01/datalake/util 中的 TestWriteExcel" />
+        <item itemvalue="Go 测试.github.com/violet-eva-01/datalake/conn 中的 TestMapToDF" />
+        <item itemvalue="Go 测试.github.com/violet-eva-01/datalake/conn 中的 TestSpark" />
+        <item itemvalue="Go 测试.github.com/violet-eva-01/datalake/conn 中的 TestConn" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-gosdk-d297c17c1fbd-d82d926f19eb-org.jetbrains.plugins.go.sharedIndexes.bundled-GO-243.22562.186" />
+        <option value="bundled-js-predefined-d6986cc7102b-deb605915726-JavaScript-GO-243.22562.186" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="应用程序级" UseSingleDictionary="true" transferred="true" />
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <ignored-roots>
+      <path value="$PROJECT_DIR$/spark-connect-go" />
+    </ignored-roots>
+  </component>
+  <component name="VgoProject">
+    <settings-migrated>true</settings-migrated>
+  </component>
+</project>
